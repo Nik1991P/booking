@@ -50,8 +50,8 @@
                         <div id="busChecklist" class="mb-4 d-flex flex-column gap-2"></div>
                         
                         <div class="d-grid gap-2 mb-3">
-                            <button class="btn btn-outline-secondary fw-bold" onclick="addMarkedBuses()">+ DODAJ OZNAČENE BUSEVE</button>
-                            <button class="btn btn-primary fw-bold" onclick="previewSchedule()">GENERIRAJ (5 DANA)</button>
+                            <button class="btn btn-outline-secondary fw-bold" onclick="addMarkedBuses()">+ DODAJ OZNAČENO NA KALENDAR</button>
+                            <button class="btn btn-primary fw-bold" onclick="previewFiveDays()">GENERIRAJ (5 DANA)</button>
                         </div>
 
                         <div id="adminActions" class="pt-3 border-top">
@@ -72,7 +72,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbwpbW-hQrK2eoryW1ap1oes3fMGjFobxpCLJrQ6BONlbnqv0WjaEkEoz2m1MWAPzzcuIw/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxLCDsQfca9D4ByJ2aWcGT35L9XG22W5hfrkpyvjN4J_XA1LPQEdfpVWO_Hh98Cl532wQ/exec";
         const weeklyTemplate = [
             {vrijeme: "09:00", ruta: "Ruta 1", bus: "Bus 1", cap: 50},
             {vrijeme: "10:30", ruta: "Ruta 2", bus: "Bus 2", cap: 20},
@@ -102,7 +102,7 @@
             const res = await api({ action: "getTours", date: date });
             const container = document.getElementById('cardsContainer');
             if(!res.data || res.data.length === 0) {
-                container.innerHTML = '<div class="col-12 text-center py-5">Nema vožnji za odabrani datum.</div>';
+                container.innerHTML = '<div class="col-12 text-center py-5">Nema vožnji.</div>';
                 return;
             }
             container.innerHTML = res.data.map(t => `
@@ -155,19 +155,16 @@
             renderAdmin();
         }
 
-        function previewSchedule() {
-            const selectedIndices = [...document.querySelectorAll('.form-check-input:checked')].map(c => parseInt(c.dataset.t));
-            if(selectedIndices.length === 0) return alert("Označi barem jedan bus!");
-            
+        function previewFiveDays() {
             const startStr = document.getElementById('datePickerAd').value;
             let start = new Date(startStr);
             tempSchedule = [];
-
+            
+            // Generira svih 5 dana sa svim rutama iz template-a
             for (let d = 0; d < 5; d++) {
                 let dDate = new Date(start);
                 dDate.setDate(start.getDate() + d);
-                selectedIndices.forEach(idx => {
-                    let t = weeklyTemplate[idx];
+                weeklyTemplate.forEach(t => {
                     tempSchedule.push({
                         tempId: Math.random().toString(36).substr(2, 9),
                         dateISO: dDate.toISOString().split('T')[0],
@@ -182,7 +179,7 @@
         function addMarkedBuses() {
             const dateStr = document.getElementById('datePickerAd').value;
             const selectedIndices = [...document.querySelectorAll('.form-check-input:checked')].map(c => parseInt(c.dataset.t));
-            if(selectedIndices.length === 0) return alert("Označi buseve koje želiš dodati!");
+            if(selectedIndices.length === 0) return alert("Prvo označi kvacicom bus koji želiš dodati!");
             
             const dDate = new Date(dateStr);
             selectedIndices.forEach(idx => {
