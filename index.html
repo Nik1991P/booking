@@ -48,13 +48,15 @@
                     <div class="card p-4 mb-4 shadow-sm">
                         <h5 class="fw-bold mb-3">Tjedni plan</h5>
                         <div id="busChecklist" class="mb-4 d-flex flex-column gap-2"></div>
-                        <div class="d-flex gap-2 mb-3">
-                            <button class="btn btn-primary flex-grow-1 fw-bold" onclick="previewSchedule()">GENERIRAJ TJEDAN</button>
-                            <button class="btn btn-outline-secondary fw-bold" onclick="addSingleBus()" title="Dodaj 1 bus na odabrani datum">+</button>
+                        
+                        <div class="d-grid gap-2 mb-3">
+                            <button class="btn btn-outline-secondary fw-bold" onclick="addMarkedBuses()">+ DODAJ OZNAČENE BUSEVE</button>
+                            <button class="btn btn-primary fw-bold" onclick="previewSchedule()">GENERIRAJ (5 DANA)</button>
                         </div>
+
                         <div id="adminActions" class="pt-3 border-top">
-                            <button class="btn btn-outline-primary w-100 mb-2 fw-bold" onclick="saveAdmin('append')">SPREMI</button>
-                            <button class="btn btn-danger w-100 fw-bold" onclick="saveAdmin('overwrite')">SPREMI IZMJENE</button>
+                            <button class="btn btn-outline-primary w-100 mb-2 fw-bold" onclick="saveAdmin('append')">SPREMI (Dodaj)</button>
+                            <button class="btn btn-danger w-100 fw-bold" onclick="saveAdmin('overwrite')">SPREMI IZMJENE (Update)</button>
                         </div>
                     </div>
                 </div>
@@ -70,7 +72,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbz7782yFWlTfRkpqGF-_8EiLhD8IRuLXLIrY45EeY7XgNCGkqS4W1x8CQyibbQUyUxDCw/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbwpbW-hQrK2eoryW1ap1oes3fMGjFobxpCLJrQ6BONlbnqv0WjaEkEoz2m1MWAPzzcuIw/exec";
         const weeklyTemplate = [
             {vrijeme: "09:00", ruta: "Ruta 1", bus: "Bus 1", cap: 50},
             {vrijeme: "10:30", ruta: "Ruta 2", bus: "Bus 2", cap: 20},
@@ -95,7 +97,6 @@
             loadOperater();
         };
 
-        // KORISNIK (Vraćen crveni alert)
         async function loadOperater() {
             const date = document.getElementById('datePickerOp').value;
             const res = await api({ action: "getTours", date: date });
@@ -133,11 +134,10 @@
             loadOperater();
         }
 
-        // ADMIN
         function loadAdmin() {
             document.getElementById('busChecklist').innerHTML = weeklyTemplate.map((t, i) => `
                 <div class="form-check p-2 border rounded">
-                    <input class="form-check-input ms-1" type="checkbox" checked data-t="${i}" id="chk${i}">
+                    <input class="form-check-input ms-1" type="checkbox" data-t="${i}" id="chk${i}">
                     <label class="form-check-label ms-2" for="chk${i}">${t.bus} (${t.vrijeme})</label>
                 </div>`).join('');
             fetchAdminByDate();
@@ -148,7 +148,7 @@
             const res = await api({ action: "getTours", date: date });
             tempSchedule = res.data.map(t => ({
                 tempId: Math.random().toString(36).substr(2, 9),
-                dateISO: new Date(t.datum).toISOString(),
+                dateISO: t.datum,
                 datum: new Date(t.datum).toLocaleDateString('hr-HR'),
                 vrijeme: t.vrijeme, ruta: t.ruta, bus: t.bus, max: t.max
             }));
@@ -157,15 +157,20 @@
 
         function previewSchedule() {
             const selectedIndices = [...document.querySelectorAll('.form-check-input:checked')].map(c => parseInt(c.dataset.t));
+            if(selectedIndices.length === 0) return alert("Označi barem jedan bus!");
+            
+            const startStr = document.getElementById('datePickerAd').value;
+            let start = new Date(startStr);
             tempSchedule = [];
-            let start = new Date();
-            for (let d = 0; d < 7; d++) {
-                let dDate = new Date(start); dDate.setDate(start.getDate() + d);
+
+            for (let d = 0; d < 5; d++) {
+                let dDate = new Date(start);
+                dDate.setDate(start.getDate() + d);
                 selectedIndices.forEach(idx => {
                     let t = weeklyTemplate[idx];
                     tempSchedule.push({
                         tempId: Math.random().toString(36).substr(2, 9),
-                        dateISO: dDate.toISOString(),
+                        dateISO: dDate.toISOString().split('T')[0],
                         datum: dDate.toLocaleDateString('hr-HR'),
                         vrijeme: t.vrijeme, ruta: t.ruta, bus: t.bus, max: t.cap
                     });
@@ -174,16 +179,20 @@
             renderAdmin();
         }
 
-        function addSingleBus() {
+        function addMarkedBuses() {
             const dateStr = document.getElementById('datePickerAd').value;
-            if(!dateStr) return alert("Odaberi datum na kalendaru!");
+            const selectedIndices = [...document.querySelectorAll('.form-check-input:checked')].map(c => parseInt(c.dataset.t));
+            if(selectedIndices.length === 0) return alert("Označi buseve koje želiš dodati!");
+            
             const dDate = new Date(dateStr);
-            const firstBus = weeklyTemplate[0];
-            tempSchedule.push({
-                tempId: Math.random().toString(36).substr(2, 9),
-                dateISO: dDate.toISOString(),
-                datum: dDate.toLocaleDateString('hr-HR'),
-                vrijeme: firstBus.vrijeme, ruta: firstBus.ruta, bus: firstBus.bus, max: firstBus.cap
+            selectedIndices.forEach(idx => {
+                let t = weeklyTemplate[idx];
+                tempSchedule.push({
+                    tempId: Math.random().toString(36).substr(2, 9),
+                    dateISO: dDate.toISOString().split('T')[0],
+                    datum: dDate.toLocaleDateString('hr-HR'),
+                    vrijeme: t.vrijeme, ruta: t.ruta, bus: t.bus, max: t.cap
+                });
             });
             renderAdmin();
         }
@@ -222,12 +231,6 @@
             const action = type === 'append' ? "saveAppend" : "saveOverwrite";
             const res = await api({ action: action, finalData: tempSchedule });
             alert(res.message);
-            
-            // Pomicanje na sljedeći dan
-            let current = new Date(document.getElementById('datePickerAd').value);
-            current.setDate(current.getDate() + 1);
-            document.getElementById('datePickerAd').value = current.toISOString().split('T')[0];
-            
             fetchAdminByDate();
         }
 
