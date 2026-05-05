@@ -6,99 +6,112 @@
     <title>Bus Manager Pro</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        :root { --primary: #0d6efd; --bg: #f4f7f9; }
-        body { background-color: var(--bg); font-family: 'Segoe UI', sans-serif; }
-        .navbar { background: linear-gradient(135deg, #0d6efd 0%, #0045ad 100%); }
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .calendar-day { background: #fff; border-radius: 8px; padding: 10px; min-height: 120px; border: 1px solid #eee; }
-        .calendar-tour { font-size: 0.7rem; padding: 2px 5px; margin-bottom: 2px; border-radius: 4px; background: #e7f1ff; border-left: 3px solid #0d6efd; color: #0045ad; }
-        .nav-link.active { font-weight: bold; border-bottom: 3px solid white !important; border-radius: 0; }
-        #loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:9999; justify-content:center; align-items:center; }
+        :root { --primary: #2563eb; --bg: #f8fafc; }
+        body { background-color: var(--bg); font-family: 'Inter', system-ui, sans-serif; }
+        .navbar { background: #ffffff; border-bottom: 1px solid #e2e8f0; }
+        .nav-link { color: #64748b !important; font-weight: 500; }
+        .nav-link.active { color: var(--primary) !important; border-bottom: 2px solid var(--primary); }
+        .card { border: none; border-radius: 16px; transition: transform 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .calendar-day-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; }
+        .tour-pill { font-size: 0.75rem; background: #eff6ff; color: #1e40af; padding: 4px 8px; border-radius: 6px; margin-bottom: 4px; border-left: 3px solid #2563eb; }
+        .over-limit { color: #dc2626; font-size: 0.8rem; font-weight: bold; display: none; }
+        #loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); z-index:9999; justify-content:center; align-items:center; }
     </style>
 </head>
 <body>
     <div id="loader"><div class="spinner-border text-primary"></div></div>
 
-    <nav class="navbar navbar-dark shadow mb-4">
-        <div class="container d-flex justify-content-between">
-            <span class="navbar-brand fw-bold">ADRIATIC TOURS</span>
-            <div class="nav">
-                <button class="nav-link text-white active" id="btn-op" onclick="showSection('op')">OPERATER</button>
-                <button class="nav-link text-white" id="btn-ad" onclick="showSection('ad')">ADMIN</button>
+    <nav class="navbar sticky-top mb-4">
+        <div class="container">
+            <span class="navbar-brand fw-bold text-primary">AdriaticTransport</span>
+            <div class="nav nav-pills">
+                <a class="nav-link active" id="btn-op" href="#" onclick="showSection('op')">Danas</a>
+                <a class="nav-link" id="btn-ad" href="#" onclick="showSection('ad')">Administracija</a>
             </div>
         </div>
     </nav>
 
     <div class="container">
-        <!-- OPERATER SECTION -->
+        <!-- OPERATER -->
         <div id="sec-op">
-            <div class="row g-3" id="cardsContainer"></div>
+            <h4 class="fw-bold mb-4">Današnje ture</h4>
+            <div class="row g-4" id="cardsContainer"></div>
         </div>
 
-        <!-- ADMIN SECTION -->
+        <!-- ADMIN -->
         <div id="sec-ad" style="display:none">
             <div class="row">
-                <!-- Postavke tjedna -->
-                <div class="col-lg-4 mb-4">
-                    <div class="card p-3 h-100">
-                        <h6 class="fw-bold mb-3 text-primary">1. Odaberi predložak</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle small">
-                                <thead><tr><th>Ruta</th><th>P-N</th></tr></thead>
-                                <tbody id="adminTableBody"></tbody>
-                            </table>
-                        </div>
-                        <button class="btn btn-primary w-100 fw-bold mt-2" onclick="generateWeek()">GENERIRAJ TJEDAN</button>
+                <div class="col-lg-4">
+                    <div class="card p-4 mb-4">
+                        <h5 class="fw-bold mb-3">Tjedni plan</h5>
+                        <p class="small text-muted">Označi buseve koji voze:</p>
+                        <div id="busChecklist" class="mb-4"></div>
+                        <button class="btn btn-primary w-100 py-2 fw-bold" onclick="generateWeek()">GENERIRAJ TJEDAN</button>
                     </div>
                 </div>
-                <!-- Kalendar prikaz -->
-                <div class="col-lg-8 mb-4">
-                    <div class="card p-3 h-100">
-                        <h6 class="fw-bold mb-3 text-primary">2. Pregled generiranog rasporeda</h6>
-                        <div id="calendarDisplay" class="row row-cols-1 row-cols-md-4 g-2">
-                            <div class="col-12 text-center text-muted py-5">Kliknite generiraj za prikaz...</div>
-                        </div>
-                    </div>
+                <div class="col-lg-8">
+                    <h5 class="fw-bold mb-3">Pregled kalendara (idućih 7 dana)</h5>
+                    <div id="calendarDisplay"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxwhgjPbJdJtuxWiBAmmv0FSWQHz9bS4hbq34mQnZRTj0L2x8YlqDTwNwunAYyZNCqJKQ/exec"; // <-- OBAVEZNO ZAMIJENI!
+        const API_URL = "https://script.google.com/macros/s/AKfycbyE5YyYww1BrQXz4tGx-FldqqVkANOlLINBi_jQzYt3aj5O4PnE-uaPeB207jKkKus-/exec"; 
 
         async function api(data) {
             document.getElementById('loader').style.display = 'flex';
-            try {
-                const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
-                return await r.json();
-            } catch (e) { alert("Greška: " + e); return null; }
-            finally { document.getElementById('loader').style.display = 'none'; }
+            const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
+            const res = await r.json();
+            document.getElementById('loader').style.display = 'none';
+            return res;
+        }
+
+        function checkLimit(rowId, max, current) {
+            const input = document.getElementById('in-' + rowId);
+            const btn = document.getElementById('btn-' + rowId);
+            const msg = document.getElementById('msg-' + rowId);
+            const value = parseInt(input.value) || 0;
+
+            if (current + value > max) {
+                msg.style.display = 'block';
+                btn.disabled = true;
+            } else {
+                msg.style.display = 'none';
+                btn.disabled = false;
+            }
         }
 
         async function loadOperater() {
             const res = await api({ action: "getTodayTours" });
             const container = document.getElementById('cardsContainer');
-            if(!res || res.data.length === 0) {
-                container.innerHTML = '<div class="col-12 text-center py-5">Nema aktivnih tura.</div>';
+            if(!res.data.length) {
+                container.innerHTML = '<div class="text-center py-5 text-muted">Nema tura za danas.</div>';
                 return;
             }
             container.innerHTML = res.data.map(t => {
                 let perc = (t.trenutno / t.max) * 100;
                 return `
-                <div class="col-md-6 col-lg-4">
-                    <div class="card p-3">
-                        <div class="d-flex justify-content-between small mb-2 text-secondary">
-                            <span>${t.datum}</span><span class="badge bg-primary">${t.vrijeme}</span>
+                <div class="col-md-6">
+                    <div class="card p-4 h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h4 class="fw-bold mb-0">${t.vrijeme}</h4>
+                                <span class="text-muted small">${t.bus}</span>
+                            </div>
+                            <span class="badge bg-primary-subtle text-primary p-2">${t.ruta}</span>
                         </div>
-                        <h5 class="fw-bold mb-1">${t.ruta}</h5>
-                        <p class="small text-muted mb-3">${t.bus}</p>
-                        <div class="input-group mb-3">
-                            <input type="number" id="in-${t.row}" class="form-control" placeholder="Putnici">
-                            <button class="btn btn-primary" onclick="add(${t.row})">DODAJ</button>
+                        <div class="input-group mb-2">
+                            <input type="number" id="in-${t.row}" class="form-control" placeholder="Br. osoba" oninput="checkLimit(${t.row}, ${t.max}, ${t.trenutno})">
+                            <button class="btn btn-primary fw-bold" id="btn-${t.row}" onclick="add(${t.row})">DODAJ</button>
                         </div>
-                        <div class="progress mb-1"><div class="progress-bar" style="width:${perc}%"></div></div>
-                        <small class="fw-bold">Popunjeno: ${t.trenutno} / ${t.max}</small>
+                        <p id="msg-${t.row}" class="over-limit">⚠️ Kapacitet popunjen!</p>
+                        <div class="d-flex justify-content-between small mb-1 mt-2">
+                            <span>Popunjeno: <b>${t.trenutno} / ${t.max}</b></span>
+                            <span>${Math.round(perc)}%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;"><div class="progress-bar" style="width: ${perc}%"></div></div>
                     </div>
                 </div>`;
             }).join('');
@@ -106,29 +119,28 @@
 
         async function loadAdmin() {
             const res = await api({ action: "getTemplate" });
-            if(res) {
-                document.getElementById('adminTableBody').innerHTML = res.data.map((t, i) => `
-                <tr>
-                    <td>${t.ruta}<br><small class="text-muted">${t.vrijeme}</small></td>
-                    <td>${[0,1,2,3,4,5,6].map(d => `<input type="checkbox" class="day-check" checked data-t="${i}" data-d="${d}">`).join('')}</td>
-                </tr>`).join('');
-            }
-        }
+            const adminRes = await api({ action: "getAdminView" });
+            
+            // Checklist za buseve
+            document.getElementById('busChecklist').innerHTML = res.data.map((t, i) => `
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input bus-check" type="checkbox" checked data-t="${i}" id="chk${i}">
+                    <label class="form-check-label d-flex justify-content-between w-100" for="chk${i}">
+                        <span>${t.bus} - ${t.ruta}</span>
+                        <span class="text-muted small">${t.vrijeme}</span>
+                    </label>
+                </div>
+            `).join('');
 
-        async function generateWeek() {
-            const checks = [...document.querySelectorAll('.day-check:checked')].map(c => ({ tourIndex: c.dataset.t, dayIndex: c.dataset.d }));
-            const res = await api({ action: "generateWeek", selekcija: checks });
-            if(res && res.status === "success") {
-                alert(res.message);
-                renderCalendar(res.data); // Osvježava kalendar s novim podacima
-            }
+            renderCalendar(adminRes.data);
         }
 
         function renderCalendar(tours) {
             const container = document.getElementById('calendarDisplay');
-            if(!tours || tours.length === 0) return;
-            
-            // Grupiraj po datumu
+            if(!tours.length) {
+                container.innerHTML = '<p class="text-muted">Nema generiranih tura.</p>';
+                return;
+            }
             const grouped = tours.reduce((acc, t) => {
                 acc[t.datum] = acc[t.datum] || [];
                 acc[t.datum].push(t);
@@ -136,19 +148,31 @@
             }, {});
 
             container.innerHTML = Object.keys(grouped).map(date => `
-                <div class="col">
-                    <div class="calendar-day shadow-sm">
-                        <div class="fw-bold border-bottom mb-2 pb-1 small text-primary">${date}</div>
-                        ${grouped[date].map(t => `<div class="calendar-tour"><b>${t.vrijeme}</b> ${t.ruta}</div>`).join('')}
+                <div class="calendar-day-box shadow-sm">
+                    <h6 class="fw-bold text-primary mb-3 border-bottom pb-2">${date}</h6>
+                    <div class="row row-cols-1 row-cols-md-2 g-2">
+                        ${grouped[date].map(t => `<div class="col"><div class="tour-pill"><b>${t.vrijeme}</b> | ${t.bus} | ${t.ruta} (${t.trenutno}/${t.max})</div></div>`).join('')}
                     </div>
-                </div>`).join('');
+                </div>
+            `).join('');
+        }
+
+        async function generateWeek() {
+            const checks = [...document.querySelectorAll('.bus-check:checked')].map(c => {
+                let list = [];
+                for(let d=0; d<7; d++) list.push({ tourIndex: c.dataset.t, dayIndex: d });
+                return list;
+            }).flat();
+            
+            const res = await api({ action: "generateWeek", selekcija: checks });
+            alert(res.message);
+            renderCalendar(res.data);
         }
 
         async function add(rowId) {
             const val = document.getElementById('in-' + rowId).value;
-            const res = await api({ action: "addTourists", rowId, count: val });
-            if(res && res.status === "success") loadOperater();
-            else if(res) alert(res.message);
+            await api({ action: "addTourists", rowId, count: val });
+            loadOperater();
         }
 
         function showSection(id) {
