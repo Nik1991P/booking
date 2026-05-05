@@ -8,9 +8,13 @@
     <style>
         :root { --primary: #2563eb; --bg: #f1f5f9; }
         body { background-color: var(--bg); font-family: 'Inter', sans-serif; }
+        
         .navbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 1rem 0; }
-        .nav-link { color: #64748b !important; font-weight: 600; cursor: pointer; border: none; }
+        /* SKLONJEN HOVER S DUGMIĆA */
+        .nav-link { color: #64748b !important; font-weight: 600; cursor: pointer; border: none !important; background: none !important; }
+        .nav-link:hover { color: #64748b !important; background: none !important; }
         .nav-link.active { color: var(--primary) !important; border-bottom: 2px solid var(--primary) !important; border-radius: 0; }
+        
         .card { border: none; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .tour-card { border-left: 4px solid var(--primary) !important; }
         .calendar-day-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; }
@@ -33,14 +37,16 @@
     </nav>
 
     <div class="container mb-5">
+        <!-- KORISNIK -->
         <div id="sec-op">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold m-0">Pregled tura</h4>
-                <input type="date" id="datePicker" class="form-control w-auto border-primary" onchange="loadOperater()">
+                <input type="date" id="datePickerOp" class="form-control w-auto border-primary" onchange="loadOperater()">
             </div>
             <div class="row g-4" id="cardsContainer"></div>
         </div>
 
+        <!-- ADMIN -->
         <div id="sec-ad" style="display:none">
             <div class="row">
                 <div class="col-lg-4">
@@ -56,6 +62,10 @@
                     </div>
                 </div>
                 <div class="col-lg-8">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold m-0">Pregled po datumu</h5>
+                        <input type="date" id="datePickerAd" class="form-control w-auto border-primary" onchange="fetchAdminByDate()">
+                    </div>
                     <div id="calendarDisplay"></div>
                 </div>
             </div>
@@ -63,7 +73,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbw_3vbITWRGj3sNvJgQpSrGjUJi5CD3xiJCe1YvVr7d5n3K2ng4ySD0qGjv8ORUtCc9qA/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbwuunxhJTvrQlj0S0rj5sddozQCiQcwQXBDv_gMzJf-zRT4rCIfY_f2npfD7b7pMDYFGA/exec";
         const weeklyTemplate = [
             {vrijeme: "09:00", ruta: "Ruta 1", bus: "Bus 1", cap: 50},
             {vrijeme: "10:30", ruta: "Ruta 2", bus: "Bus 2", cap: 20},
@@ -82,13 +92,15 @@
         }
 
         window.onload = () => {
-            document.getElementById('datePicker').value = new Date().toISOString().split('T')[0];
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('datePickerOp').value = today;
+            document.getElementById('datePickerAd').value = today;
             loadOperater();
         };
 
-        // --- KORISNIK (Vraćen strogi MAX) ---
+        // --- KORISNIK (Vraćen CRVENI alert) ---
         async function loadOperater() {
-            const date = document.getElementById('datePicker').value;
+            const date = document.getElementById('datePickerOp').value;
             const res = await api({ action: "getTours", date: date });
             const container = document.getElementById('cardsContainer');
             if(!res.data || res.data.length === 0) {
@@ -117,23 +129,30 @@
             const val = parseInt(document.getElementById('in-' + rowId).value) || 0;
             if(val <= 0) return;
             if(mode === 'add' && (current + val > max)) {
-                alert(`Nema dovoljno mjesta! Preostalo: ${max - current}`);
+                // STROGI CRVENI ALERT
+                alert("!!! PREKORAČENJE !!!\nMaksimalan broj putnika je " + max + ".\nSlobodno još samo: " + (max - current));
                 return;
             }
             await api({ action: "addTourists", rowId, count: mode === 'add' ? val : -val });
             loadOperater();
         }
 
-        // --- ADMIN (Popravljena logika spremanja) ---
+        // --- ADMIN (Prikaz zadnjeg spremljenog + Kalendar) ---
         function loadAdmin() {
             document.getElementById('busChecklist').innerHTML = weeklyTemplate.map((t, i) => `
                 <div class="form-check p-2 border rounded">
                     <input class="form-check-input ms-1" type="checkbox" checked data-t="${i}" id="chk${i}">
                     <label class="form-check-label ms-2" for="chk${i}">${t.bus} (${t.vrijeme})</label>
                 </div>`).join('');
-            tempSchedule = [];
+            fetchAdminByDate(); // Odmah učitaj današnje ture iz baze
+        }
+
+        async function fetchAdminByDate() {
+            const date = document.getElementById('datePickerAd').value;
+            const res = await api({ action: "getTours", date: date });
+            tempSchedule = []; // Čistimo preview jer gledamo bazu
             document.getElementById('adminActions').style.display = 'none';
-            document.getElementById('calendarDisplay').innerHTML = '<div class="text-muted">Generirajte tjedan za pregled.</div>';
+            renderAdmin(res.data, true);
         }
 
         function previewSchedule() {
@@ -153,24 +172,29 @@
                 });
             }
             document.getElementById('adminActions').style.display = 'block';
-            renderAdmin();
+            renderAdmin(tempSchedule, false);
         }
 
-        function renderAdmin() {
+        function renderAdmin(tours, isDB) {
             const container = document.getElementById('calendarDisplay');
-            const grouped = tempSchedule.reduce((acc, t) => { 
-                acc[t.datum] = acc[t.datum] || []; acc[t.datum].push(t); return acc; 
+            if(!tours || tours.length === 0) {
+                container.innerHTML = '<div class="text-muted p-4 border rounded bg-white">Nema tura u bazi za ovaj datum.</div>';
+                return;
+            }
+            const grouped = tours.reduce((acc, t) => { 
+                const d = isDB ? new Date(t.datum).toLocaleDateString('hr-HR') : t.datum;
+                acc[d] = acc[d] || []; acc[d].push(t); return acc; 
             }, {});
             
             container.innerHTML = Object.keys(grouped).map(date => `
                 <div class="calendar-day-box">
-                    <h6 class="fw-bold border-bottom pb-2">${date}</h6>
+                    <h6 class="fw-bold border-bottom pb-2">${isDB ? 'IZ EXCELA: ' : ''}${date}</h6>
                     <div class="row g-2">
                         ${grouped[date].map(t => `
                             <div class="col-md-6">
-                                <div class="temp-tour-item">
+                                <div class="temp-tour-item ${isDB ? 'bg-success-subtle' : ''}">
                                     <span class="small fw-bold">${t.vrijeme} | ${t.bus}</span>
-                                    <button class="btn-remove" onclick="removeTemp('${t.tempId}')">✕</button>
+                                    ${!isDB ? `<button class="btn-remove" onclick="removeTemp('${t.tempId}')">✕</button>` : ''}
                                 </div>
                             </div>`).join('')}
                     </div>
@@ -179,14 +203,14 @@
 
         function removeTemp(id) {
             tempSchedule = tempSchedule.filter(x => x.tempId !== id);
-            renderAdmin();
+            renderAdmin(tempSchedule, false);
         }
 
         async function saveAdmin(type) {
             const action = type === 'append' ? "saveAppend" : "saveOverwrite";
             const res = await api({ action: action, finalData: tempSchedule });
             alert(res.message);
-            // Kalendar ostaje onakav kakav je spremljen, ne brišemo tempSchedule da se može nastaviti uređivati
+            fetchAdminByDate(); // Nakon spremanja osvježi prikaz iz baze
         }
 
         function showSection(id) {
