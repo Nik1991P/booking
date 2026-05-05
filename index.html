@@ -8,11 +8,11 @@
     <style>
         :root { --primary: #2563eb; --bg: #f1f5f9; }
         body { background-color: var(--bg); font-family: 'Inter', sans-serif; }
-        
         .navbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 1rem 0; }
-        /* SKLONJEN HOVER S DUGMIĆA */
-        .nav-link { color: #64748b !important; font-weight: 600; cursor: pointer; border: none !important; background: none !important; }
-        .nav-link:hover { color: #64748b !important; background: none !important; }
+        
+        /* FIKSIRAN NAV-LINK BEZ HOVERA */
+        .nav-link { color: #64748b !important; font-weight: 600; cursor: pointer; border: none !important; background: none !important; outline: none !important; }
+        .nav-link:hover, .nav-link:focus, .nav-link:active { color: #64748b !important; background: none !important; box-shadow: none !important; }
         .nav-link.active { color: var(--primary) !important; border-bottom: 2px solid var(--primary) !important; border-radius: 0; }
         
         .card { border: none; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
@@ -53,17 +53,18 @@
                     <div class="card p-4 mb-4 shadow-sm">
                         <h5 class="fw-bold mb-3">Tjedni plan</h5>
                         <div id="busChecklist" class="mb-4 d-flex flex-column gap-2"></div>
-                        <button class="btn btn-primary w-100 py-2 fw-bold" onclick="previewSchedule()">GENERIRAJ TJEDAN</button>
+                        <button class="btn btn-primary w-100 py-2 fw-bold mb-3" onclick="previewSchedule()">GENERIRAJ TJEDAN</button>
                         
-                        <div id="adminActions" class="mt-4 pt-3 border-top" style="display:none">
+                        <!-- GUMBI SADA STALNO VIDLJIVI -->
+                        <div id="adminActions" class="pt-3 border-top">
                             <button class="btn btn-outline-primary w-100 mb-2 fw-bold" onclick="saveAdmin('append')">SPREMI (Dodaj)</button>
-                            <button class="btn btn-danger w-100 fw-bold" onclick="saveAdmin('overwrite')">SPREMI IZMJENE (Update)</button>
+                            <button class="btn btn-danger w-100 fw-bold" id="btnOverwrite" onclick="saveAdmin('overwrite')">SPREMI IZMJENE (Update)</button>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-8">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold m-0">Pregled po datumu</h5>
+                        <h5 class="fw-bold m-0">Pregled / Uređivanje</h5>
                         <input type="date" id="datePickerAd" class="form-control w-auto border-primary" onchange="fetchAdminByDate()">
                     </div>
                     <div id="calendarDisplay"></div>
@@ -81,6 +82,7 @@
             {vrijeme: "15:00", ruta: "Ruta 4", bus: "Bus 4", cap: 30}
         ];
         let tempSchedule = [];
+        let isEditingPreview = false;
 
         async function api(data) {
             document.getElementById('loader').style.display = 'flex';
@@ -98,7 +100,7 @@
             loadOperater();
         };
 
-        // --- KORISNIK (Vraćen CRVENI alert) ---
+        // --- KORISNIK (STALNI CRVENI ALERT) ---
         async function loadOperater() {
             const date = document.getElementById('datePickerOp').value;
             const res = await api({ action: "getTours", date: date });
@@ -129,7 +131,6 @@
             const val = parseInt(document.getElementById('in-' + rowId).value) || 0;
             if(val <= 0) return;
             if(mode === 'add' && (current + val > max)) {
-                // STROGI CRVENI ALERT
                 alert("!!! PREKORAČENJE !!!\nMaksimalan broj putnika je " + max + ".\nSlobodno još samo: " + (max - current));
                 return;
             }
@@ -137,22 +138,28 @@
             loadOperater();
         }
 
-        // --- ADMIN (Prikaz zadnjeg spremljenog + Kalendar) ---
+        // --- ADMIN ---
         function loadAdmin() {
             document.getElementById('busChecklist').innerHTML = weeklyTemplate.map((t, i) => `
                 <div class="form-check p-2 border rounded">
                     <input class="form-check-input ms-1" type="checkbox" checked data-t="${i}" id="chk${i}">
                     <label class="form-check-label ms-2" for="chk${i}">${t.bus} (${t.vrijeme})</label>
                 </div>`).join('');
-            fetchAdminByDate(); // Odmah učitaj današnje ture iz baze
+            fetchAdminByDate();
         }
 
         async function fetchAdminByDate() {
             const date = document.getElementById('datePickerAd').value;
             const res = await api({ action: "getTours", date: date });
-            tempSchedule = []; // Čistimo preview jer gledamo bazu
-            document.getElementById('adminActions').style.display = 'none';
-            renderAdmin(res.data, true);
+            isEditingPreview = false;
+            // Mapiramo DB podatke u privremeni format da bi se mogli brisati
+            tempSchedule = res.data.map(t => ({
+                tempId: Math.random().toString(36).substr(2, 9),
+                dateISO: new Date(t.datum).toISOString(),
+                datum: new Date(t.datum).toLocaleDateString('hr-HR'),
+                vrijeme: t.vrijeme, ruta: t.ruta, bus: t.bus, max: t.max
+            }));
+            renderAdmin(true);
         }
 
         function previewSchedule() {
@@ -171,30 +178,29 @@
                     });
                 });
             }
-            document.getElementById('adminActions').style.display = 'block';
-            renderAdmin(tempSchedule, false);
+            isEditingPreview = true;
+            renderAdmin(false);
         }
 
-        function renderAdmin(tours, isDB) {
+        function renderAdmin(isFromDB) {
             const container = document.getElementById('calendarDisplay');
-            if(!tours || tours.length === 0) {
-                container.innerHTML = '<div class="text-muted p-4 border rounded bg-white">Nema tura u bazi za ovaj datum.</div>';
+            if(tempSchedule.length === 0) {
+                container.innerHTML = '<div class="text-muted p-4 border rounded bg-white">Nema podataka.</div>';
                 return;
             }
-            const grouped = tours.reduce((acc, t) => { 
-                const d = isDB ? new Date(t.datum).toLocaleDateString('hr-HR') : t.datum;
-                acc[d] = acc[d] || []; acc[d].push(t); return acc; 
+            const grouped = tempSchedule.reduce((acc, t) => { 
+                acc[t.datum] = acc[t.datum] || []; acc[t.datum].push(t); return acc; 
             }, {});
             
             container.innerHTML = Object.keys(grouped).map(date => `
                 <div class="calendar-day-box">
-                    <h6 class="fw-bold border-bottom pb-2">${isDB ? 'IZ EXCELA: ' : ''}${date}</h6>
+                    <h6 class="fw-bold border-bottom pb-2">${date}</h6>
                     <div class="row g-2">
                         ${grouped[date].map(t => `
                             <div class="col-md-6">
-                                <div class="temp-tour-item ${isDB ? 'bg-success-subtle' : ''}">
+                                <div class="temp-tour-item">
                                     <span class="small fw-bold">${t.vrijeme} | ${t.bus}</span>
-                                    ${!isDB ? `<button class="btn-remove" onclick="removeTemp('${t.tempId}')">✕</button>` : ''}
+                                    <button class="btn-remove" onclick="removeTemp('${t.tempId}')">✕</button>
                                 </div>
                             </div>`).join('')}
                     </div>
@@ -203,14 +209,19 @@
 
         function removeTemp(id) {
             tempSchedule = tempSchedule.filter(x => x.tempId !== id);
-            renderAdmin(tempSchedule, false);
+            renderAdmin(false);
         }
 
         async function saveAdmin(type) {
+            if (tempSchedule.length === 0 && type === 'append') {
+                alert("Nema podataka za dodavanje.");
+                return;
+            }
             const action = type === 'append' ? "saveAppend" : "saveOverwrite";
             const res = await api({ action: action, finalData: tempSchedule });
             alert(res.message);
-            fetchAdminByDate(); // Nakon spremanja osvježi prikaz iz baze
+            // NAKON SPREMANJA: Ne čistimo tempSchedule, tako da kalendar ostaje vidljiv za daljnje promjene
+            renderAdmin(false);
         }
 
         function showSection(id) {
