@@ -1,148 +1,126 @@
 <!DOCTYPE html>
-<html lang="hr">
+<html>
 <head>
+    <base target="_top">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bus Tour Manager - Admin & Operater</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    
     <style>
-        :root { --primary-color: #0d6efd; --bg-color: #f4f7f6; }
-        body { background-color: var(--bg-color); font-family: sans-serif; }
-        
-        .nav-tabs { border-bottom: none; margin-bottom: 20px; }
-        .nav-link { border: none !important; color: #6c757d; font-weight: 600; padding: 12px 20px; }
-        .nav-link.active { color: var(--primary-color) !important; background: none !important; border-bottom: 3px solid var(--primary-color) !important; }
-        
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .day-selector { background: white; padding: 10px; border-radius: 8px; border: 1px solid #dee2e6; }
-        .admin-section { background: white; padding: 25px; border-radius: 12px; }
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', sans-serif; }
+        .nav-pills .nav-link.active { background-color: #0d6efd; border-radius: 20px; }
+        .admin-table { background: white; border-radius: 12px; overflow: hidden; font-size: 0.85rem; }
+        .admin-table th { background: #0d6efd; color: white; text-align: center; }
+        .day-check { transform: scale(1.2); }
+        .tour-row:hover { background-color: #f8f9fa; }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-primary shadow-sm mb-4">
-    <div class="container">
-        <span class="navbar-brand"><i class="bi bi-bus-front-fill me-2"></i>BUS TOURS PRO</span>
-    </div>
-</nav>
-
-<div class="container">
-    <!-- TAB NAVIGACIJA -->
-    <ul class="nav nav-tabs justify-content-center" id="myTab" role="tablist">
+<div class="container py-4">
+    <!-- Navigacija -->
+    <ul class="nav nav-pills justify-content-center mb-4" id="pills-tab" role="tablist">
         <li class="nav-item">
-            <button class="nav-link active" id="operater-tab" data-bs-toggle="tab" data-bs-target="#operater" type="button">
-                <i class="bi bi-calendar-event me-2"></i>DANAŠNJE TURE
+            <button class="nav-link active" id="operater-tab" data-bs-toggle="pill" data-bs-target="#pills-operater">
+                <i class="bi bi-list-check me-1"></i> Operater
             </button>
         </li>
-        <li class="nav-item">
-            <button class="nav-link" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin" type="button">
-                <i class="bi bi-gear-fill me-2"></i>ADMIN PANEL
+        <li class="nav-item ms-2">
+            <button class="nav-link" id="admin-tab" data-bs-toggle="pill" data-bs-target="#pills-admin">
+                <i class="bi bi-calendar-plus me-1"></i> Admin Planer
             </button>
         </li>
     </ul>
 
-    <div class="tab-content" id="myTabContent">
-        
-        <!-- SEKCIJA ZA OPERATERA (Ono što smo već radili) -->
-        <div class="tab-pane fade show active" id="operater" role="tabpanel">
-            <div class="text-center mb-4">
-                <h5 class="text-muted">Pregled za: <strong>Srijeda, 06.05.</strong></h5>
-            </div>
-            <div class="row">
-                <!-- Primjer jedne kartice -->
+    <div class="tab-content">
+        <!-- OPERATER SEKCIJA -->
+        <div class="tab-pane fade show active" id="pills-operater">
+            <h4 class="text-center mb-4">Današnje Ture</h4>
+            <div id="operaterView" class="row g-3">
+                <!-- Ovdje bi išle kartice koje smo ranije dizajnirali -->
                 <div class="col-md-6 offset-md-3">
-                    <div class="card p-3 mb-3" style="border-left: 5px solid #198754;">
+                    <div class="card p-3 shadow-sm border-0 border-start border-success border-5">
                         <div class="d-flex justify-content-between">
-                            <h6>Panorama Tour - Cabrio</h6>
-                            <span class="badge bg-light text-primary">09:00</span>
+                            <strong>09:00 - Panorama Tour</strong>
+                            <span class="text-muted">Bus: RI-101-AA</span>
                         </div>
-                        <div class="d-flex gap-2 mt-2">
-                            <input type="number" class="form-control" value="12">
-                            <button class="btn btn-primary"><i class="bi bi-check-lg"></i></button>
+                        <div class="input-group mt-2">
+                            <input type="number" class="form-control" placeholder="Broj turista" value="12">
+                            <button class="btn btn-primary">Spremi</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- NOVA SEKCIJA ZA ADMINA (Unos rasporeda) -->
-        <div class="tab-pane fade" id="admin" role="tabpanel">
-            <div class="admin-section shadow-sm">
-                <h4 class="mb-4"><i class="bi bi-plus-circle me-2 text-primary"></i>Planiranje novih tura</h4>
+        <!-- ADMIN SEKCIJA (Tjedna Matrica) -->
+        <div class="tab-pane fade" id="pills-admin">
+            <div class="card shadow-sm p-4 border-0">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4>Planiranje za naredni tjedan</h4>
+                    <button class="btn btn-success btn-lg" onclick="generiraj()">
+                        <i class="bi bi-cloud-upload me-2"></i>Generiraj sve ture
+                    </button>
+                </div>
                 
-                <form id="adminForm">
-                    <div class="row g-3">
-                        <!-- 1. Odabir Ture -->
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Naziv rute / ture</label>
-                            <select class="form-select">
-                                <option>Panorama Tour - Cabrio</option>
-                                <option>Old Town Walking Tour</option>
-                                <option>Airport Transfer</option>
-                            </select>
-                        </div>
-
-                        <!-- 2. Vrijeme -->
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Vrijeme polaska</label>
-                            <input type="time" class="form-control" value="09:00">
-                        </div>
-
-                        <!-- 3. Odabir Dana (Ponavljanje) -->
-                        <div class="col-12 mt-4">
-                            <label class="form-label fw-bold">Ponovi turu na dane:</label>
-                            <div class="d-flex flex-wrap gap-2">
-                                <input type="checkbox" class="btn-check" id="pon" checked>
-                                <label class="btn btn-outline-secondary" for="pon">Pon</label>
-                                
-                                <input type="checkbox" class="btn-check" id="uto" checked>
-                                <label class="btn btn-outline-secondary" for="uto">Uto</label>
-                                
-                                <input type="checkbox" class="btn-check" id="sri" checked>
-                                <label class="btn btn-outline-secondary" for="sri">Sri</label>
-                                
-                                <input type="checkbox" class="btn-check" id="cet" checked>
-                                <label class="btn btn-outline-secondary" for="cet">Čet</label>
-                                
-                                <input type="checkbox" class="btn-check" id="pet" checked>
-                                <label class="btn btn-outline-secondary" for="pet">Pet</label>
-                                
-                                <input type="checkbox" class="btn-check" id="sub">
-                                <label class="btn btn-outline-secondary" for="sub">Sub</label>
-                                
-                                <input type="checkbox" class="btn-check" id="ned">
-                                <label class="btn btn-outline-secondary" for="ned">Ned</label>
-                            </div>
-                            <small class="text-muted d-block mt-2">Tura će biti dodana u raspored za sve označene dane u narednom tjednu.</small>
-                        </div>
-
-                        <!-- 4. Dodatne info -->
-                        <div class="col-md-6 mt-4">
-                            <label class="form-label fw-bold">Dodijeli autobus (opcionalno)</label>
-                            <input type="text" class="form-control" placeholder="npr. RI-123-AA">
-                        </div>
-                        
-                        <div class="col-md-6 mt-4">
-                            <label class="form-label fw-bold">Maksimalni kapacitet</label>
-                            <input type="number" class="form-control" value="50">
-                        </div>
-
-                        <!-- GUMB ZA SPREMANJE -->
-                        <div class="col-12 mt-5">
-                            <button type="button" class="btn btn-primary btn-lg w-100" onclick="alert('Generiram raspored u Google Sheetu...')">
-                                <i class="bi bi-calendar-plus me-2"></i>GENERIRAJ RASPORED ZA TJEDAN
-                            </button>
-                        </div>
-                    </div>
-                </form>
+                <div class="table-responsive">
+                    <table class="table table-bordered admin-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Tura / Vrijeme</th>
+                                <th>PON</th><th>UTO</th><th>SRI</th><th>ČET</th><th>PET</th><th>SUB</th><th>NED</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTableBody">
+                            <!-- Popunjava se preko JavaScripta -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="alert alert-info mt-3 small">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Označite ture koje želite kreirati. Za svaku označenu kvačicu, sustav će automatski otvoriti termin u glavnom rasporedu.
+                </div>
             </div>
         </div>
-
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Inicijalno učitavanje matice
+    window.onload = function() {
+        google.script.run.withSuccessHandler(buildAdminTable).getWeeklyTemplate();
+    };
+
+    function buildAdminTable(tours) {
+        const tbody = document.getElementById('adminTableBody');
+        tours.forEach((tour, index) => {
+            let row = `<tr class="tour-row">
+                <td class="p-3">
+                    <div class="fw-bold">${tour.vrijeme}</div>
+                    <div class="small text-muted">${tour.ruta}</div>
+                    <div class="small text-primary">${tour.bus}</div>
+                </td>`;
+            
+            // Dodaj kvačicu za svaki dan (7 dana)
+            for(let i=0; i<7; i++) {
+                row += `<td class="text-center">
+                    <input type="checkbox" class="form-check-input day-check" checked data-tour="${index}" data-day="${i}">
+                </td>`;
+            }
+            row += `</tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function generiraj() {
+        const checks = document.querySelectorAll('.day-check:checked');
+        if(confirm(`Želite li generirati ${checks.length} termina za naredni tjedan?`)) {
+            google.script.run.withSuccessHandler(res => {
+                alert(res);
+            }).saveWeeklySchedule([]); // Ovdje bi slali prave podatke
+        }
+    }
+</script>
 </body>
 </html>
