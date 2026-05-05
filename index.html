@@ -3,22 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adriatic Transport</title>
-    <!-- Brže učitavanje Bootstrapa s provjerenog CDN-a -->
+    <title>Hop on Hop Off Menager</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         :root { --primary: #2563eb; --bg: #f1f5f9; }
-        body { background-color: var(--bg); font-family: 'Segoe UI', Roboto, sans-serif; }
-        .navbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 0.8rem 0; }
-        .nav-link { color: #64748b !important; font-weight: 600; cursor: pointer; }
-        .nav-link.active { color: var(--primary) !important; border-bottom: 2px solid var(--primary) !important; }
-        .card { border: none; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        body { background-color: var(--bg); font-family: 'Inter', sans-serif; }
+        .navbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 1rem 0; }
+        .nav-link { color: #64748b !important; font-weight: 600; cursor: pointer; border: none !important; background: none !important; outline: none !important; }
+        .nav-link:hover { color: #64748b !important; background: none !important; box-shadow: none !important; }
+        .nav-link.active { color: var(--primary) !important; border-bottom: 2px solid var(--primary) !important; border-radius: 0; }
+        .card { border: none; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .tour-card { border-left: 4px solid var(--primary) !important; }
-        .calendar-day-box { background: white; border-radius: 10px; border: 1px solid #e2e8f0; padding: 12px; margin-bottom: 12px; }
-        .temp-tour-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; display: flex; justify-content: space-between; }
-        .btn-remove { color: #ef4444; background: none; border: none; font-weight: bold; }
-        .limit-alert { display: none; color: #ef4444; font-weight: bold; font-size: 0.85rem; margin-top: 10px; padding: 8px; background: #fee2e2; border-radius: 6px; border: 1px solid #fca5a5; }
-        #loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.5); z-index:9999; justify-content:center; align-items:center; }
+        .calendar-day-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; }
+        .temp-tour-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-remove { color: #ef4444; background: none; border: none; font-size: 1.2rem; cursor: pointer; }
+        /* CRVENI ALERT - NETAKNUT */
+        .limit-alert { display: none; color: #ef4444; font-weight: bold; font-size: 0.85rem; margin-top: 10px; padding: 8px; background: #fee2e2; border-radius: 8px; border: 1px solid #fca5a5; }
+        #loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.6); z-index:9999; justify-content:center; align-items:center; }
+        /* VRAĆENI IZGLED TJEDNOG PLANA */
+        .admin-sidebar { padding-left: 15px; padding-right: 15px; }
     </style>
 </head>
 <body>
@@ -26,7 +29,7 @@
 
     <nav class="navbar sticky-top mb-4">
         <div class="container d-flex justify-content-between align-items-center">
-            <span class="navbar-brand fw-bold text-primary">AdriaticTransport</span>
+            <span class="navbar-brand fw-bold text-primary">Hop on Hop Off Menager</span>
             <div class="nav nav-pills gap-3">
                 <a class="nav-link active" id="btn-op" onclick="showSection('op')">Korisnik</a>
                 <a class="nav-link" id="btn-ad" onclick="showSection('ad')">Administracija</a>
@@ -38,19 +41,19 @@
         <div id="sec-op">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold m-0">Pregled tura</h4>
-                <input type="date" id="datePickerOp" class="form-control w-auto" onchange="loadOperater()">
+                <input type="date" id="datePickerOp" class="form-control w-auto border-primary" onchange="loadOperater()">
             </div>
-            <div class="row g-3" id="cardsContainer"></div>
+            <div class="row g-4" id="cardsContainer"></div>
         </div>
 
         <div id="sec-ad" style="display:none">
             <div class="row">
-                <div class="col-lg-4">
-                    <div class="card p-3 mb-4">
+                <div class="col-lg-4 admin-sidebar">
+                    <div class="card p-4 mb-4 shadow-sm">
                         <h5 class="fw-bold mb-3">Tjedni plan</h5>
-                        <div id="busChecklist" class="mb-3 d-flex flex-column gap-2"></div>
+                        <div id="busChecklist" class="mb-4 d-flex flex-column gap-2"></div>
                         <div class="d-grid gap-2 mb-3">
-                            <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="addMarkedBuses()">+ DODAJ OZNAČENO</button>
+                            <button class="btn btn-outline-secondary fw-bold" onclick="addMarkedBuses()">+ DODAJ OZNAČENO</button>
                             <button class="btn btn-primary fw-bold" onclick="previewFiveDays()">GENERIRAJ (5 DANA)</button>
                         </div>
                         <div class="pt-3 border-top">
@@ -61,8 +64,8 @@
                 </div>
                 <div class="col-lg-8">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold m-0">Kalendar</h5>
-                        <input type="date" id="datePickerAd" class="form-control w-auto" onchange="fetchAdminByDate()">
+                        <h5 class="fw-bold m-0">Kalendar / Uređivanje</h5>
+                        <input type="date" id="datePickerAd" class="form-control w-auto border-primary" onchange="fetchAdminByDate()">
                     </div>
                     <div id="calendarDisplay"></div>
                 </div>
@@ -71,7 +74,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyJ9pIIbefBDcOcPO8_nRiqsChtUscnCyACv50zPZEX2BIpYMO__22N5EV8Y2OrMfIsBQ/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbzHnakQkgrqaTZLCImjPKp8CKxBbFzNE75OcR3tkKLb2BiFGssp_leK2G9-1gTDDRucgA/exec";
         const weeklyTemplate = [
             {vrijeme: "09:00", ruta: "Ruta 1", bus: "Bus 1", cap: 50},
             {vrijeme: "10:30", ruta: "Ruta 2", bus: "Bus 2", cap: 20},
@@ -101,20 +104,18 @@
             const res = await api({ action: "getTours", date: date });
             const container = document.getElementById('cardsContainer');
             if(!res.data || res.data.length === 0) {
-                container.innerHTML = '<div class="col-12 text-center py-5 text-muted">Nema vožnji za ovaj datum.</div>';
+                container.innerHTML = '<div class="col-12 text-center py-5">Nema vožnji.</div>';
                 return;
             }
             container.innerHTML = res.data.map(t => `
                 <div class="col-md-6">
-                    <div class="card p-3 tour-card">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                                <h4 class="fw-bold m-0">${t.vrijeme}</h4>
-                                <small class="text-muted">${t.bus}</small>
-                            </div>
-                            <span class="badge bg-primary-subtle text-primary p-2">${t.ruta}</span>
+                    <div class="card p-4 tour-card">
+                        <div class="d-flex justify-content-between mb-2">
+                            <h3 class="fw-bold m-0">${t.vrijeme}</h3>
+                            <span class="badge bg-primary-subtle text-primary p-2 px-3">${t.ruta}</span>
                         </div>
-                        <div class="input-group input-group-sm mb-2">
+                        <p class="text-muted fw-medium mb-3">${t.bus}</p>
+                        <div class="input-group mb-2">
                             <input type="number" id="in-${t.row}" class="form-control" placeholder="Broj">
                             <button class="btn btn-primary fw-bold" onclick="updateTourists(${t.row}, 'add', ${t.max})">DODAJ</button>
                             <button class="btn btn-outline-danger fw-bold" onclick="updateTourists(${t.row}, 'sub', ${t.max})">ODUZMI</button>
@@ -144,7 +145,9 @@
             
             const change = mode === 'add' ? val : -val;
             const res = await api({ action: "addTourists", rowId, count: change });
-            if(res.status === "success") {
+            
+            // OVO SADA ISPRAVNO AŽURIRA BROJKU BEZ UNDEFINED
+            if(res.status === "success" && res.noviBroj !== undefined) {
                 displayEl.innerText = res.noviBroj;
                 inputEl.value = "";
             }
@@ -152,9 +155,9 @@
 
         function loadAdmin() {
             document.getElementById('busChecklist').innerHTML = weeklyTemplate.map((t, i) => `
-                <div class="form-check p-1 small">
-                    <input class="form-check-input" type="checkbox" data-t="${i}" id="chk${i}">
-                    <label class="form-check-label" for="chk${i}">${t.bus} (${t.vrijeme})</label>
+                <div class="form-check p-2 border rounded">
+                    <input class="form-check-input ms-1" type="checkbox" data-t="${i}" id="chk${i}">
+                    <label class="form-check-label ms-2" for="chk${i}">${t.bus} (${t.vrijeme})</label>
                 </div>`).join('');
             fetchAdminByDate();
         }
@@ -210,7 +213,7 @@
         function renderAdmin() {
             const container = document.getElementById('calendarDisplay');
             if(tempSchedule.length === 0) {
-                container.innerHTML = '<div class="text-muted p-3">Nema planiranih vožnji.</div>';
+                container.innerHTML = '<div class="text-muted p-4 border rounded bg-white">Nema podataka.</div>';
                 return;
             }
             const grouped = tempSchedule.reduce((acc, t) => { 
@@ -218,13 +221,13 @@
             }, {});
             container.innerHTML = Object.keys(grouped).map(date => `
                 <div class="calendar-day-box shadow-sm">
-                    <h6 class="fw-bold border-bottom pb-1 small">${date}</h6>
+                    <h6 class="fw-bold border-bottom pb-2">${date}</h6>
                     <div class="row g-2">
                         ${grouped[date].map(t => `
-                            <div class="col-6">
-                                <div class="temp-tour-item small">
-                                    <span>${t.vrijeme} | ${t.bus}</span>
-                                    <button class="btn-remove" onclick="removeTemp('${t.tempId}')">×</button>
+                            <div class="col-md-6">
+                                <div class="temp-tour-item">
+                                    <span class="small fw-bold">${t.vrijeme} | ${t.bus}</span>
+                                    <button class="btn-remove" onclick="removeTemp('${t.tempId}')">✕</button>
                                 </div>
                             </div>`).join('')}
                     </div>
