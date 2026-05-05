@@ -3,54 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bus Manager Pro</title>
+    <title>Adriatic Transport Manager</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; }
-        body { background-color: var(--bg); font-family: 'Inter', system-ui, sans-serif; }
-        .navbar { background: #ffffff; border-bottom: 1px solid #e2e8f0; }
-        .nav-link { color: #64748b !important; font-weight: 500; }
-        .nav-link.active { color: var(--primary) !important; border-bottom: 2px solid var(--primary); }
-        .card { border: none; border-radius: 16px; transition: transform 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .calendar-day-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; }
-        .tour-pill { font-size: 0.75rem; background: #eff6ff; color: #1e40af; padding: 4px 8px; border-radius: 6px; margin-bottom: 4px; border-left: 3px solid #2563eb; }
-        .over-limit { color: #dc2626; font-size: 0.8rem; font-weight: bold; display: none; }
+        :root { --primary: #2563eb; --bg: #f1f5f9; --success: #10b981; }
+        body { background-color: var(--bg); font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .navbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 1rem 0; }
+        .nav-link { color: #64748b !important; font-weight: 600; cursor: pointer; transition: 0.2s; border-bottom: 2px solid transparent; }
+        .nav-link.active { color: var(--primary) !important; border-bottom-color: var(--primary); border-radius: 0; }
+        .card { border: none; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .calendar-day-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .temp-tour-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-remove { color: #ef4444; background: none; border: none; font-size: 1.2rem; line-height: 1; padding: 0 5px; }
+        .over-limit-msg { color: #dc2626; font-size: 0.85rem; font-weight: bold; display: none; margin-top: 5px; }
         #loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); z-index:9999; justify-content:center; align-items:center; }
+        .current-active-label { color: var(--success); font-weight: bold; font-size: 0.9rem; margin-bottom: 10px; display: flex; align-items: center; }
+        .progress { height: 10px; border-radius: 5px; }
     </style>
 </head>
 <body>
     <div id="loader"><div class="spinner-border text-primary"></div></div>
 
     <nav class="navbar sticky-top mb-4">
-        <div class="container">
-            <span class="navbar-brand fw-bold text-primary">AdriaticTransport</span>
-            <div class="nav nav-pills">
-                <a class="nav-link active" id="btn-op" href="#" onclick="showSection('op')">Danas</a>
-                <a class="nav-link" id="btn-ad" href="#" onclick="showSection('ad')">Administracija</a>
+        <div class="container d-flex justify-content-between align-items-center">
+            <span class="navbar-brand fw-bold text-primary" style="letter-spacing: -0.5px;">AdriaticTransport</span>
+            <div class="nav nav-pills gap-3">
+                <a class="nav-link active" id="btn-op" onclick="showSection('op')">Korisnik</a>
+                <a class="nav-link" id="btn-ad" onclick="showSection('ad')">Administracija</a>
             </div>
         </div>
     </nav>
 
-    <div class="container">
-        <!-- OPERATER -->
+    <div class="container mb-5">
+        <!-- KORISNIK SEKCIJA -->
         <div id="sec-op">
-            <h4 class="fw-bold mb-4">Današnje ture</h4>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold m-0">Današnje ture</h4>
+                <span id="currentDateDisplay" class="badge bg-white text-dark border p-2"></span>
+            </div>
             <div class="row g-4" id="cardsContainer"></div>
         </div>
 
-        <!-- ADMIN -->
+        <!-- ADMIN SEKCIJA -->
         <div id="sec-ad" style="display:none">
             <div class="row">
                 <div class="col-lg-4">
-                    <div class="card p-4 mb-4">
-                        <h5 class="fw-bold mb-3">Tjedni plan</h5>
-                        <p class="small text-muted">Označi buseve koji voze:</p>
-                        <div id="busChecklist" class="mb-4"></div>
-                        <button class="btn btn-primary w-100 py-2 fw-bold" onclick="generateWeek()">GENERIRAJ TJEDAN</button>
+                    <div class="card p-4 mb-4 shadow-sm">
+                        <h5 class="fw-bold mb-3">Tjedni plan buseva</h5>
+                        <div id="busChecklist" class="mb-4 d-flex flex-column gap-2"></div>
+                        
+                        <button class="btn btn-primary w-100 py-2 fw-bold" onclick="previewSchedule()">GENERIRAJ PREGLED</button>
+                        
+                        <div id="saveArea" style="display:none;" class="mt-4 pt-3 border-top">
+                            <button class="btn btn-success w-100 py-3 fw-bold shadow-sm" onclick="saveFinal()">SPREMI U TABLICU</button>
+                            <p class="small text-muted mt-2 text-center">Plan će zamijeniti sve postojeće buduće vožnje.</p>
+                        </div>
                     </div>
                 </div>
                 <div class="col-lg-8">
-                    <h5 class="fw-bold mb-3">Pregled kalendara (idućih 7 dana)</h5>
+                    <h5 class="fw-bold mb-3">Pregled i uređivanje rasporeda</h5>
                     <div id="calendarDisplay"></div>
                 </div>
             </div>
@@ -58,23 +69,73 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyE5YyYww1BrQXz4tGx-FldqqVkANOlLINBi_jQzYt3aj5O4PnE-uaPeB207jKkKus-/exec"; 
+        // --- KONFIGURACIJA ---
+        const API_URL = "https://script.google.com/macros/s/AKfycbz0JmaXzcprfAC2N2IiQ7AbssVusxt38kv-uDr4KSepAnmS5ipZOjF3oMI3yJAtuwOSig/exec"; 
+        let tempSchedule = []; 
 
         async function api(data) {
             document.getElementById('loader').style.display = 'flex';
-            const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
-            const res = await r.json();
-            document.getElementById('loader').style.display = 'none';
-            return res;
+            try {
+                const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
+                const res = await r.json();
+                return res;
+            } catch (e) {
+                console.error(e);
+                return { status: "error", message: "Veza sa serverom nije uspjela." };
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        // --- KORISNIK LOGIKA ---
+        async function loadOperater() {
+            document.getElementById('currentDateDisplay').innerText = new Date().toLocaleDateString('hr-HR');
+            const res = await api({ action: "getTodayTours" });
+            const container = document.getElementById('cardsContainer');
+            
+            if(!res.data || res.data.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center py-5 text-muted">Nema aktivnih vožnji za današnji datum.</div>';
+                return;
+            }
+
+            container.innerHTML = res.data.map(t => {
+                let perc = (t.trenutno / t.max) * 100;
+                return `
+                <div class="col-md-6">
+                    <div class="card p-4 h-100 border-start border-4 ${perc >= 100 ? 'border-danger' : 'border-primary'}">
+                        <div class="d-flex justify-content-between mb-2">
+                            <h3 class="fw-bold m-0">${t.vrijeme}</h3>
+                            <span class="badge bg-primary-subtle text-primary p-2 px-3">${t.ruta}</span>
+                        </div>
+                        <p class="text-muted fw-medium mb-3">${t.bus}</p>
+                        
+                        <div class="input-group">
+                            <input type="number" id="in-${t.row}" class="form-control form-control-lg" placeholder="Broj putnika" oninput="checkLimit(${t.row}, ${t.max}, ${t.trenutno})">
+                            <button class="btn btn-primary px-4 fw-bold" id="btn-${t.row}" onclick="addTourists(${t.row})">DODAJ</button>
+                        </div>
+                        <div id="msg-${t.row}" class="over-limit-msg">⚠️ Kapacitet buza bi bio prekoračen!</div>
+
+                        <div class="mt-4">
+                            <div class="d-flex justify-content-between small mb-1 fw-bold">
+                                <span>Popunjeno: ${t.trenutno} / ${t.max}</span>
+                                <span>${Math.round(perc)}%</span>
+                            </div>
+                            <div class="progress bg-light">
+                                <div class="progress-bar ${perc >= 100 ? 'bg-danger' : 'bg-primary'}" style="width: ${Math.min(perc, 100)}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
         function checkLimit(rowId, max, current) {
             const input = document.getElementById('in-' + rowId);
             const btn = document.getElementById('btn-' + rowId);
             const msg = document.getElementById('msg-' + rowId);
-            const value = parseInt(input.value) || 0;
+            const val = parseInt(input.value) || 0;
 
-            if (current + value > max) {
+            if (current + val > max) {
                 msg.style.display = 'block';
                 btn.disabled = true;
             } else {
@@ -83,103 +144,146 @@
             }
         }
 
-        async function loadOperater() {
-            const res = await api({ action: "getTodayTours" });
-            const container = document.getElementById('cardsContainer');
-            if(!res.data.length) {
-                container.innerHTML = '<div class="text-center py-5 text-muted">Nema tura za danas.</div>';
-                return;
-            }
-            container.innerHTML = res.data.map(t => {
-                let perc = (t.trenutno / t.max) * 100;
-                return `
-                <div class="col-md-6">
-                    <div class="card p-4 h-100">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <div>
-                                <h4 class="fw-bold mb-0">${t.vrijeme}</h4>
-                                <span class="text-muted small">${t.bus}</span>
-                            </div>
-                            <span class="badge bg-primary-subtle text-primary p-2">${t.ruta}</span>
-                        </div>
-                        <div class="input-group mb-2">
-                            <input type="number" id="in-${t.row}" class="form-control" placeholder="Br. osoba" oninput="checkLimit(${t.row}, ${t.max}, ${t.trenutno})">
-                            <button class="btn btn-primary fw-bold" id="btn-${t.row}" onclick="add(${t.row})">DODAJ</button>
-                        </div>
-                        <p id="msg-${t.row}" class="over-limit">⚠️ Kapacitet popunjen!</p>
-                        <div class="d-flex justify-content-between small mb-1 mt-2">
-                            <span>Popunjeno: <b>${t.trenutno} / ${t.max}</b></span>
-                            <span>${Math.round(perc)}%</span>
-                        </div>
-                        <div class="progress" style="height: 8px;"><div class="progress-bar" style="width: ${perc}%"></div></div>
-                    </div>
-                </div>`;
-            }).join('');
+        async function addTourists(rowId) {
+            const val = document.getElementById('in-' + rowId).value;
+            if(!val || val <= 0) return;
+            const res = await api({ action: "addTourists", rowId, count: val });
+            if(res.status === "success") loadOperater();
         }
 
+        // --- ADMIN LOGIKA ---
         async function loadAdmin() {
-            const res = await api({ action: "getTemplate" });
-            const adminRes = await api({ action: "getAdminView" });
+            const templateRes = await api({ action: "getTemplate" });
+            const currentRes = await api({ action: "getAdminView" });
             
-            // Checklist za buseve
-            document.getElementById('busChecklist').innerHTML = res.data.map((t, i) => `
-                <div class="form-check form-switch mb-2">
+            // Postavljanje kvačica za buseve
+            document.getElementById('busChecklist').innerHTML = templateRes.data.map((t, i) => `
+                <div class="form-check form-switch bg-light p-2 px-5 rounded border">
                     <input class="form-check-input bus-check" type="checkbox" checked data-t="${i}" id="chk${i}">
-                    <label class="form-check-label d-flex justify-content-between w-100" for="chk${i}">
-                        <span>${t.bus} - ${t.ruta}</span>
-                        <span class="text-muted small">${t.vrijeme}</span>
-                    </label>
+                    <label class="form-check-label fw-medium" for="chk${i}">${t.bus} (${t.vrijeme})</label>
                 </div>
             `).join('');
 
-            renderCalendar(adminRes.data);
+            if (tempSchedule.length === 0) {
+                renderCurrentDatabase(currentRes.data);
+                document.getElementById('saveArea').style.display = 'none';
+            }
         }
 
-        function renderCalendar(tours) {
+        async function previewSchedule() {
+            const res = await api({ action: "getTemplate" });
+            const template = res.data;
+            const selectedIndices = [...document.querySelectorAll('.bus-check:checked')].map(c => parseInt(c.dataset.t));
+            
+            tempSchedule = [];
+            let startDate = new Date();
+            
+            for (let d = 0; d < 7; d++) {
+                let dDate = new Date(startDate);
+                dDate.setDate(startDate.getDate() + d);
+                let mappedDay = (dDate.getDay() === 0) ? 6 : dDate.getDay() - 1;
+
+                template.forEach((t, tIdx) => {
+                    if (selectedIndices.includes(tIdx)) {
+                        tempSchedule.push({
+                            tempId: Math.random().toString(36).substr(2, 9),
+                            dateISO: dDate.toISOString(),
+                            datumLabel: dDate.toLocaleDateString('hr-HR'),
+                            vrijeme: t.vrijeme,
+                            ruta: t.ruta,
+                            bus: t.bus,
+                            max: t.cap
+                        });
+                    }
+                });
+            }
+            document.getElementById('saveArea').style.display = 'block';
+            renderPreview();
+        }
+
+        function renderPreview() {
             const container = document.getElementById('calendarDisplay');
-            if(!tours.length) {
-                container.innerHTML = '<p class="text-muted">Nema generiranih tura.</p>';
+            if (tempSchedule.length === 0) {
+                container.innerHTML = '<div class="alert alert-warning text-center">Nema odabranih vožnji.</div>';
+                document.getElementById('saveArea').style.display = 'none';
                 return;
             }
+
+            const grouped = tempSchedule.reduce((acc, t) => {
+                acc[t.datumLabel] = acc[t.datumLabel] || [];
+                acc[t.datumLabel].push(t);
+                return acc;
+            }, {});
+
+            container.innerHTML = '<div class="alert alert-info py-2 small fw-bold mb-3">Uređivanje tjednog plana:</div>' + 
+                Object.keys(grouped).map(date => `
+                <div class="calendar-day-box p-3 mb-3 shadow-sm">
+                    <h6 class="fw-bold text-primary mb-3 border-bottom pb-2">${date}</h6>
+                    <div class="row g-2">
+                        ${grouped[date].map(t => `
+                            <div class="col-md-6">
+                                <div class="temp-tour-item shadow-sm">
+                                    <span class="small fw-bold">${t.vrijeme} | ${t.bus}</span>
+                                    <button class="btn-remove" onclick="removeFromPreview('${t.tempId}')" title="Ukloni iz plana">✕</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function removeFromPreview(tempId) {
+            tempSchedule = tempSchedule.filter(x => x.tempId !== tempId);
+            renderPreview();
+        }
+
+        async function saveFinal() {
+            if (tempSchedule.length === 0) return;
+            if (!confirm("Ovo će obrisati sve trenutne i buduće vožnje u tablici i upisati ovaj novi plan. Nastaviti?")) return;
+            
+            const res = await api({ action: "saveFinalSchedule", finalData: tempSchedule });
+            alert(res.message);
+            tempSchedule = [];
+            showSection('ad'); 
+        }
+
+        function renderCurrentDatabase(tours) {
+            const container = document.getElementById('calendarDisplay');
+            if (!tours || tours.length === 0) {
+                container.innerHTML = '<div class="alert alert-light text-center border p-5">Tablica je trenutno prazna. Generirajte plan lijevo.</div>';
+                return;
+            }
+            
             const grouped = tours.reduce((acc, t) => {
                 acc[t.datum] = acc[t.datum] || [];
                 acc[t.datum].push(t);
                 return acc;
             }, {});
 
-            container.innerHTML = Object.keys(grouped).map(date => `
-                <div class="calendar-day-box shadow-sm">
-                    <h6 class="fw-bold text-primary mb-3 border-bottom pb-2">${date}</h6>
-                    <div class="row row-cols-1 row-cols-md-2 g-2">
-                        ${grouped[date].map(t => `<div class="col"><div class="tour-pill"><b>${t.vrijeme}</b> | ${t.bus} | ${t.ruta} (${t.trenutno}/${t.max})</div></div>`).join('')}
+            container.innerHTML = '<div class="current-active-label"><span>●</span> &nbsp; Trenutni raspored u bazi:</div>' + 
+                Object.keys(grouped).map(date => `
+                <div class="calendar-day-box p-3 mb-3 bg-white border-start border-4 border-success shadow-sm">
+                    <h6 class="fw-bold text-dark mb-3">${date}</h6>
+                    <div class="row g-2">
+                        ${grouped[date].map(t => `
+                            <div class="col-md-6">
+                                <div class="p-2 border rounded bg-light small fw-medium">
+                                    ${t.vrijeme} | ${t.bus} | ${t.ruta}
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
             `).join('');
         }
 
-        async function generateWeek() {
-            const checks = [...document.querySelectorAll('.bus-check:checked')].map(c => {
-                let list = [];
-                for(let d=0; d<7; d++) list.push({ tourIndex: c.dataset.t, dayIndex: d });
-                return list;
-            }).flat();
-            
-            const res = await api({ action: "generateWeek", selekcija: checks });
-            alert(res.message);
-            renderCalendar(res.data);
-        }
-
-        async function add(rowId) {
-            const val = document.getElementById('in-' + rowId).value;
-            await api({ action: "addTourists", rowId, count: val });
-            loadOperater();
-        }
-
+        // --- NAVIGACIJA ---
         function showSection(id) {
             document.getElementById('sec-op').style.display = id === 'op' ? 'block' : 'none';
             document.getElementById('sec-ad').style.display = id === 'ad' ? 'block' : 'none';
-            document.getElementById('btn-op').classList.toggle('active', id === 'op');
-            document.getElementById('btn-ad').classList.toggle('active', id === 'ad');
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById('btn-' + id).classList.add('active');
             if(id === 'op') loadOperater(); else loadAdmin();
         }
 
