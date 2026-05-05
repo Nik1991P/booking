@@ -4,20 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adriatic Transport</title>
+    <!-- Brže učitavanje Bootstrapa s provjerenog CDN-a -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         :root { --primary: #2563eb; --bg: #f1f5f9; }
-        body { background-color: var(--bg); font-family: 'Inter', sans-serif; }
-        .navbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 1rem 0; }
-        .nav-link { color: #64748b !important; font-weight: 600; cursor: pointer; border: none !important; background: none !important; outline: none !important; }
-        .nav-link:hover, .nav-link:focus, .nav-link:active { color: #64748b !important; background: none !important; box-shadow: none !important; }
-        .nav-link.active { color: var(--primary) !important; border-bottom: 2px solid var(--primary) !important; border-radius: 0; }
-        .card { border: none; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: transform 0.2s; }
+        body { background-color: var(--bg); font-family: 'Segoe UI', Roboto, sans-serif; }
+        .navbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 0.8rem 0; }
+        .nav-link { color: #64748b !important; font-weight: 600; cursor: pointer; }
+        .nav-link.active { color: var(--primary) !important; border-bottom: 2px solid var(--primary) !important; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .tour-card { border-left: 4px solid var(--primary) !important; }
-        .calendar-day-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; }
-        .temp-tour-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-remove { color: #ef4444; background: none; border: none; font-size: 1.2rem; cursor: pointer; }
-        #loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.6); z-index:9999; justify-content:center; align-items:center; }
+        .calendar-day-box { background: white; border-radius: 10px; border: 1px solid #e2e8f0; padding: 12px; margin-bottom: 12px; }
+        .temp-tour-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; display: flex; justify-content: space-between; }
+        .btn-remove { color: #ef4444; background: none; border: none; font-weight: bold; }
+        .limit-alert { display: none; color: #ef4444; font-weight: bold; font-size: 0.85rem; margin-top: 10px; padding: 8px; background: #fee2e2; border-radius: 6px; border: 1px solid #fca5a5; }
+        #loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.5); z-index:9999; justify-content:center; align-items:center; }
     </style>
 </head>
 <body>
@@ -37,22 +38,22 @@
         <div id="sec-op">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold m-0">Pregled tura</h4>
-                <input type="date" id="datePickerOp" class="form-control w-auto border-primary" onchange="loadOperater()">
+                <input type="date" id="datePickerOp" class="form-control w-auto" onchange="loadOperater()">
             </div>
-            <div class="row g-4" id="cardsContainer"></div>
+            <div class="row g-3" id="cardsContainer"></div>
         </div>
 
         <div id="sec-ad" style="display:none">
             <div class="row">
                 <div class="col-lg-4">
-                    <div class="card p-4 mb-4 shadow-sm">
+                    <div class="card p-3 mb-4">
                         <h5 class="fw-bold mb-3">Tjedni plan</h5>
-                        <div id="busChecklist" class="mb-4 d-flex flex-column gap-2"></div>
+                        <div id="busChecklist" class="mb-3 d-flex flex-column gap-2"></div>
                         <div class="d-grid gap-2 mb-3">
-                            <button class="btn btn-outline-secondary fw-bold" onclick="addMarkedBuses()">+ DODAJ OZNAČENO</button>
+                            <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="addMarkedBuses()">+ DODAJ OZNAČENO</button>
                             <button class="btn btn-primary fw-bold" onclick="previewFiveDays()">GENERIRAJ (5 DANA)</button>
                         </div>
-                        <div id="adminActions" class="pt-3 border-top">
+                        <div class="pt-3 border-top">
                             <button class="btn btn-outline-primary w-100 mb-2 fw-bold" onclick="saveAdmin('append')">SPREMI (Dodaj)</button>
                             <button class="btn btn-danger w-100 fw-bold" onclick="saveAdmin('overwrite')">SPREMI IZMJENE (Update)</button>
                         </div>
@@ -60,8 +61,8 @@
                 </div>
                 <div class="col-lg-8">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold m-0">Kalendar / Uređivanje</h5>
-                        <input type="date" id="datePickerAd" class="form-control w-auto border-primary" onchange="fetchAdminByDate()">
+                        <h5 class="fw-bold m-0">Kalendar</h5>
+                        <input type="date" id="datePickerAd" class="form-control w-auto" onchange="fetchAdminByDate()">
                     </div>
                     <div id="calendarDisplay"></div>
                 </div>
@@ -70,7 +71,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyaoupofNMbhu9q_sgb9TdGj04xXwT8IzcWraYOIhlxLvTDJh9cAK0cJp662lmOGyM2Sg/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbyJ9pIIbefBDcOcPO8_nRiqsChtUscnCyACv50zPZEX2BIpYMO__22N5EV8Y2OrMfIsBQ/exec";
         const weeklyTemplate = [
             {vrijeme: "09:00", ruta: "Ruta 1", bus: "Bus 1", cap: 50},
             {vrijeme: "10:30", ruta: "Ruta 2", bus: "Bus 2", cap: 20},
@@ -100,40 +101,47 @@
             const res = await api({ action: "getTours", date: date });
             const container = document.getElementById('cardsContainer');
             if(!res.data || res.data.length === 0) {
-                container.innerHTML = '<div class="col-12 text-center py-5">Nema vožnji za danas.</div>';
+                container.innerHTML = '<div class="col-12 text-center py-5 text-muted">Nema vožnji za ovaj datum.</div>';
                 return;
             }
             container.innerHTML = res.data.map(t => `
                 <div class="col-md-6">
-                    <div class="card p-4 tour-card">
-                        <div class="d-flex justify-content-between mb-2">
-                            <h3 class="fw-bold m-0">${t.vrijeme}</h3>
-                            <span class="badge bg-primary-subtle text-primary p-2 px-3">${t.ruta}</span>
+                    <div class="card p-3 tour-card">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h4 class="fw-bold m-0">${t.vrijeme}</h4>
+                                <small class="text-muted">${t.bus}</small>
+                            </div>
+                            <span class="badge bg-primary-subtle text-primary p-2">${t.ruta}</span>
                         </div>
-                        <p class="text-muted fw-medium mb-3">${t.bus}</p>
-                        <div class="input-group mb-2">
+                        <div class="input-group input-group-sm mb-2">
                             <input type="number" id="in-${t.row}" class="form-control" placeholder="Broj">
-                            <button class="btn btn-primary fw-bold" onclick="updateTourists(${t.row}, 'add', ${t.max}, ${t.trenutno})">DODAJ</button>
-                            <button class="btn btn-outline-danger fw-bold" onclick="updateTourists(${t.row}, 'sub', ${t.max}, ${t.trenutno})">ODUZMI</button>
+                            <button class="btn btn-primary fw-bold" onclick="updateTourists(${t.row}, 'add', ${t.max})">DODAJ</button>
+                            <button class="btn btn-outline-danger fw-bold" onclick="updateTourists(${t.row}, 'sub', ${t.max})">ODUZMI</button>
                         </div>
                         <div class="small fw-bold">Popunjeno: <span id="count-${t.row}">${t.trenutno}</span> / ${t.max}</div>
+                        <div id="alert-${t.row}" class="limit-alert">!!! PREKORAČENJE !!! Slobodno još samo: <span id="rem-${t.row}"></span></div>
                     </div>
                 </div>`).join('');
         }
 
-        async function updateTourists(rowId, mode, max, current) {
+        async function updateTourists(rowId, mode, max) {
             const displayEl = document.getElementById('count-' + rowId);
-            const nowVal = parseInt(displayEl.innerText);
+            const alertEl = document.getElementById('alert-' + rowId);
+            const remEl = document.getElementById('rem-' + rowId);
             const inputEl = document.getElementById('in-' + rowId);
+            const currentVal = parseInt(displayEl.innerText) || 0;
             const val = parseInt(inputEl.value) || 0;
             
             if(val <= 0) return;
-            if(mode === 'add' && (nowVal + val > max)) {
-                alert("!!! PREKORAČENJE !!!\nMaksimalan broj putnika je " + max + ".\nSlobodno još samo: " + (max - nowVal));
+            alertEl.style.display = 'none';
+
+            if(mode === 'add' && (currentVal + val > max)) {
+                remEl.innerText = (max - currentVal);
+                alertEl.style.display = 'block';
                 return;
             }
             
-            // Brzi vizualni update dok server obrađuje
             const change = mode === 'add' ? val : -val;
             const res = await api({ action: "addTourists", rowId, count: change });
             if(res.status === "success") {
@@ -144,9 +152,9 @@
 
         function loadAdmin() {
             document.getElementById('busChecklist').innerHTML = weeklyTemplate.map((t, i) => `
-                <div class="form-check p-2 border rounded">
-                    <input class="form-check-input ms-1" type="checkbox" data-t="${i}" id="chk${i}">
-                    <label class="form-check-label ms-2" for="chk${i}">${t.bus} (${t.vrijeme})</label>
+                <div class="form-check p-1 small">
+                    <input class="form-check-input" type="checkbox" data-t="${i}" id="chk${i}">
+                    <label class="form-check-label" for="chk${i}">${t.bus} (${t.vrijeme})</label>
                 </div>`).join('');
             fetchAdminByDate();
         }
@@ -154,7 +162,7 @@
         async function fetchAdminByDate() {
             const date = document.getElementById('datePickerAd').value;
             const res = await api({ action: "getTours", date: date });
-            tempSchedule = res.data.map(t => ({
+            tempSchedule = (res.data || []).map(t => ({
                 tempId: Math.random().toString(36).substr(2, 9),
                 dateISO: t.datum,
                 datum: new Date(t.datum).toLocaleDateString('hr-HR'),
@@ -185,7 +193,7 @@
         function addMarkedBuses() {
             const dateStr = document.getElementById('datePickerAd').value;
             const selectedIndices = [...document.querySelectorAll('.form-check-input:checked')].map(c => parseInt(c.dataset.t));
-            if(selectedIndices.length === 0) return alert("Označi kvacicom bus!");
+            if(selectedIndices.length === 0) return;
             const dDate = new Date(dateStr);
             selectedIndices.forEach(idx => {
                 let t = weeklyTemplate[idx];
@@ -202,21 +210,21 @@
         function renderAdmin() {
             const container = document.getElementById('calendarDisplay');
             if(tempSchedule.length === 0) {
-                container.innerHTML = '<div class="text-muted p-4 border rounded bg-white">Nema podataka.</div>';
+                container.innerHTML = '<div class="text-muted p-3">Nema planiranih vožnji.</div>';
                 return;
             }
             const grouped = tempSchedule.reduce((acc, t) => { 
                 acc[t.datum] = acc[t.datum] || []; acc[t.datum].push(t); return acc; 
             }, {});
             container.innerHTML = Object.keys(grouped).map(date => `
-                <div class="calendar-day-box">
-                    <h6 class="fw-bold border-bottom pb-2">${date}</h6>
+                <div class="calendar-day-box shadow-sm">
+                    <h6 class="fw-bold border-bottom pb-1 small">${date}</h6>
                     <div class="row g-2">
                         ${grouped[date].map(t => `
-                            <div class="col-md-6">
-                                <div class="temp-tour-item">
-                                    <span class="small fw-bold">${t.vrijeme} | ${t.bus}</span>
-                                    <button class="btn-remove" onclick="removeTemp('${t.tempId}')">✕</button>
+                            <div class="col-6">
+                                <div class="temp-tour-item small">
+                                    <span>${t.vrijeme} | ${t.bus}</span>
+                                    <button class="btn-remove" onclick="removeTemp('${t.tempId}')">×</button>
                                 </div>
                             </div>`).join('')}
                     </div>
