@@ -3,281 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bus Tour Booking - Sučelje</title>
-    <!-- Bootstrap 5 CSS -->
+    <title>Bus Tour Manager - Admin & Operater</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     
     <style>
-        :root {
-            --primary-color: #0d6efd; /* Plava za glavne akcije */
-            --bg-color: #f4f7f6;
-            --tour-free: #198754; /* Zelena za slobodno */
-            --tour-warning: #fd7e14; /* Narančasto za skoro puno */
-            --tour-full: #dc3545; /* Crveno za puno */
-        }
-
-        body {
-            background-color: var(--bg-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding-bottom: 30px;
-        }
-
-        /* Navigacija */
-        .navbar-brand {
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
-
-        /* Zaglavlje s datumom */
-        .header-section {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-
-        /* Kartica Ture */
-        .tour-card {
-            background: white;
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            margin-bottom: 15px;
-            border-left: 6px solid transparent; /* Boja statusa */
-        }
-
-        .tour-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-        }
-
-        /* Statusne Boje na karticama */
-        .status-free { border-left-color: var(--tour-free); }
-        .status-warning { border-left-color: var(--tour-warning); }
-        .status-full { border-left-color: var(--tour-full); }
-
-        .time-badge {
-            font-size: 1.1rem;
-            font-weight: bold;
-            padding: 8px 12px;
-        }
-
-        .bus-info {
-            font-size: 0.9rem;
-            color: #6c757d;
-        }
-
-        /* Dio za unos turista */
-        .booking-section {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px;
-        }
-
-        .booking-input {
-            font-size: 1.2rem;
-            font-weight: bold;
-            text-align: center;
-            width: 80px;
-        }
-
-        /* Progress Bar */
-        .progress {
-            height: 8px;
-            border-radius: 4px;
-            margin-top: 10px;
-        }
-
-        /* Animacija za gumb "Spremi" */
-        .btn-save {
-            transition: all 0.3s ease;
-        }
-        .btn-save.saved {
-            background-color: var(--tour-free) !important;
-            border-color: var(--tour-free) !important;
-        }
+        :root { --primary-color: #0d6efd; --bg-color: #f4f7f6; }
+        body { background-color: var(--bg-color); font-family: sans-serif; }
+        
+        .nav-tabs { border-bottom: none; margin-bottom: 20px; }
+        .nav-link { border: none !important; color: #6c757d; font-weight: 600; padding: 12px 20px; }
+        .nav-link.active { color: var(--primary-color) !important; background: none !important; border-bottom: 3px solid var(--primary-color) !important; }
+        
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .day-selector { background: white; padding: 10px; border-radius: 8px; border: 1px solid #dee2e6; }
+        .admin-section { background: white; padding: 25px; border-radius: 12px; }
     </style>
 </head>
 <body>
 
-<!-- Navigacijska Traka -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
+<nav class="navbar navbar-dark bg-primary shadow-sm mb-4">
     <div class="container">
-        <a class="navbar-brand" href="#">
-            <i class="bi bi-bus-front-fill me-2"></i>BUS TOURS
-        </a>
-        <div class="d-flex text-white align-items-center">
-            <i class="bi bi-person-circle fs-5 me-2"></i>
-            <span>Operater: Ivan</span>
-        </div>
+        <span class="navbar-brand"><i class="bi bi-bus-front-fill me-2"></i>BUS TOURS PRO</span>
     </div>
 </nav>
 
-<!-- Glavni Sadržaj -->
-<div class="container mt-4">
-    
-    <!-- Zaglavlje i Filteri -->
-    <div class="header-section d-flex justify-content-between align-items-center flex-wrap gap-3">
-        <div>
-            <h4 class="mb-0">Raspored Tura</h4>
-            <p class="text-muted mb-0">Danas: Srijeda, 6. Svibnja 2026.</p>
+<div class="container">
+    <!-- TAB NAVIGACIJA -->
+    <ul class="nav nav-tabs justify-content-center" id="myTab" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="operater-tab" data-bs-toggle="tab" data-bs-target="#operater" type="button">
+                <i class="bi bi-calendar-event me-2"></i>DANAŠNJE TURE
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin" type="button">
+                <i class="bi bi-gear-fill me-2"></i>ADMIN PANEL
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="myTabContent">
+        
+        <!-- SEKCIJA ZA OPERATERA (Ono što smo već radili) -->
+        <div class="tab-pane fade show active" id="operater" role="tabpanel">
+            <div class="text-center mb-4">
+                <h5 class="text-muted">Pregled za: <strong>Srijeda, 06.05.</strong></h5>
+            </div>
+            <div class="row">
+                <!-- Primjer jedne kartice -->
+                <div class="col-md-6 offset-md-3">
+                    <div class="card p-3 mb-3" style="border-left: 5px solid #198754;">
+                        <div class="d-flex justify-content-between">
+                            <h6>Panorama Tour - Cabrio</h6>
+                            <span class="badge bg-light text-primary">09:00</span>
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <input type="number" class="form-control" value="12">
+                            <button class="btn btn-primary"><i class="bi bi-check-lg"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-outline-primary active">Danas</button>
-            <button type="button" class="btn btn-outline-primary">Sutra</button>
-            <button type="button" class="btn btn-outline-primary">Tjedan</button>
+
+        <!-- NOVA SEKCIJA ZA ADMINA (Unos rasporeda) -->
+        <div class="tab-pane fade" id="admin" role="tabpanel">
+            <div class="admin-section shadow-sm">
+                <h4 class="mb-4"><i class="bi bi-plus-circle me-2 text-primary"></i>Planiranje novih tura</h4>
+                
+                <form id="adminForm">
+                    <div class="row g-3">
+                        <!-- 1. Odabir Ture -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Naziv rute / ture</label>
+                            <select class="form-select">
+                                <option>Panorama Tour - Cabrio</option>
+                                <option>Old Town Walking Tour</option>
+                                <option>Airport Transfer</option>
+                            </select>
+                        </div>
+
+                        <!-- 2. Vrijeme -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Vrijeme polaska</label>
+                            <input type="time" class="form-control" value="09:00">
+                        </div>
+
+                        <!-- 3. Odabir Dana (Ponavljanje) -->
+                        <div class="col-12 mt-4">
+                            <label class="form-label fw-bold">Ponovi turu na dane:</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <input type="checkbox" class="btn-check" id="pon" checked>
+                                <label class="btn btn-outline-secondary" for="pon">Pon</label>
+                                
+                                <input type="checkbox" class="btn-check" id="uto" checked>
+                                <label class="btn btn-outline-secondary" for="uto">Uto</label>
+                                
+                                <input type="checkbox" class="btn-check" id="sri" checked>
+                                <label class="btn btn-outline-secondary" for="sri">Sri</label>
+                                
+                                <input type="checkbox" class="btn-check" id="cet" checked>
+                                <label class="btn btn-outline-secondary" for="cet">Čet</label>
+                                
+                                <input type="checkbox" class="btn-check" id="pet" checked>
+                                <label class="btn btn-outline-secondary" for="pet">Pet</label>
+                                
+                                <input type="checkbox" class="btn-check" id="sub">
+                                <label class="btn btn-outline-secondary" for="sub">Sub</label>
+                                
+                                <input type="checkbox" class="btn-check" id="ned">
+                                <label class="btn btn-outline-secondary" for="ned">Ned</label>
+                            </div>
+                            <small class="text-muted d-block mt-2">Tura će biti dodana u raspored za sve označene dane u narednom tjednu.</small>
+                        </div>
+
+                        <!-- 4. Dodatne info -->
+                        <div class="col-md-6 mt-4">
+                            <label class="form-label fw-bold">Dodijeli autobus (opcionalno)</label>
+                            <input type="text" class="form-control" placeholder="npr. RI-123-AA">
+                        </div>
+                        
+                        <div class="col-md-6 mt-4">
+                            <label class="form-label fw-bold">Maksimalni kapacitet</label>
+                            <input type="number" class="form-control" value="50">
+                        </div>
+
+                        <!-- GUMB ZA SPREMANJE -->
+                        <div class="col-12 mt-5">
+                            <button type="button" class="btn btn-primary btn-lg w-100" onclick="alert('Generiram raspored u Google Sheetu...')">
+                                <i class="bi bi-calendar-plus me-2"></i>GENERIRAJ RASPORED ZA TJEDAN
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
-
-    <!-- Lista Tura -->
-    <div class="row" id="tourList">
-
-        <!-- KARTICA 1: Slobodna Tura -->
-        <div class="col-12 col-md-6 col-lg-4">
-            <div class="card tour-card status-free p-3">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <h5 class="card-title mb-1">Panorama Tour - Cabrio</h5>
-                        <div class="bus-info">
-                            <i class="bi bi-truck me-1"></i>Bus: RI-100-KA (Katni)
-                        </div>
-                    </div>
-                    <span class="badge bg-light text-primary time-badge shadow-sm">09:00</span>
-                </div>
-
-                <div class="booking-section">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <label class="form-label mb-0 fw-bold text-muted">Bukirano turista:</label>
-                        <div class="d-flex gap-2 align-items-center">
-                            <input type="number" class="form-control booking-input" value="12" min="0" max="50">
-                            <button class="btn btn-primary btn-save" onclick="simulateSave(this)">
-                                <i class="bi bi-check-lg"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Progress bar i info o kapacitetu -->
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between small text-muted mb-1">
-                            <span>Popunjenost</span>
-                            <span>12 / 50 mjesta</span>
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar bg-success" role="progressbar" style="width: 24%;" aria-valuenow="24" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> <!-- Kraj Kartice 1 -->
-
-        <!-- KARTICA 2: Skoro Puna Tura -->
-        <div class="col-12 col-md-6 col-lg-4">
-            <div class="card tour-card status-warning p-3">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <h5 class="card-title mb-1">Old Town Walking Tour</h5>
-                        <div class="bus-info">
-                            <i class="bi bi-person-walking me-1"></i>Vodič: Marija
-                        </div>
-                    </div>
-                    <span class="badge bg-light text-primary time-badge shadow-sm">11:00</span>
-                </div>
-
-                <div class="booking-section">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <label class="form-label mb-0 fw-bold text-muted">Bukirano turista:</label>
-                        <div class="d-flex gap-2 align-items-center">
-                            <input type="number" class="form-control booking-input" value="18" min="0" max="20">
-                            <button class="btn btn-primary btn-save" onclick="simulateSave(this)">
-                                <i class="bi bi-check-lg"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between small text-muted mb-1">
-                            <span class="text-warning fw-bold">Skoro popunjeno!</span>
-                            <span>18 / 20 mjesta</span>
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar bg-warning" role="progressbar" style="width: 90%;" aria-valuenow="90" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> <!-- Kraj Kartice 2 -->
-
-        <!-- KARTICA 3: Puna Tura -->
-        <div class="col-12 col-md-6 col-lg-4">
-            <div class="card tour-card status-full p-3">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <h5 class="card-title mb-1">Airport Transfer - Group A</h5>
-                        <div class="bus-info">
-                            <i class="bi bi-truck me-1"></i>Bus: RI-200-ST
-                        </div>
-                    </div>
-                    <span class="badge bg-light text-primary time-badge shadow-sm">14:00</span>
-                </div>
-
-                <div class="booking-section">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <label class="form-label mb-0 fw-bold text-muted">Bukirano turista:</label>
-                        <div class="d-flex gap-2 align-items-center">
-                            <input type="number" class="form-control booking-input is-invalid" value="50" min="0" max="50" disabled>
-                            <button class="btn btn-secondary disabled">
-                                <i class="bi bi-lock-fill"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between small text-muted mb-1">
-                            <span class="text-danger fw-bold">RASPRODANO</span>
-                            <span>50 / 50 mjesta</span>
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar bg-danger" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> <!-- Kraj Kartice 3 -->
 
     </div>
 </div>
 
-<!-- Bootstrap 5 JS -->
-<script href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<script>
-    // Mala funkcija da simulira spremanje kad klikneš gumb
-    function simulateSave(button) {
-        // Dodaj animaciju učitavanja
-        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-        button.classList.add('disabled');
-
-        // Nakon 1 sekunde simuliraj uspjeh
-        setTimeout(() => {
-            button.innerHTML = '<i class="bi bi-check-all fs-5"></i>';
-            button.classList.remove('btn-primary', 'disabled');
-            button.classList.add('btn-success', 'saved');
-            
-            // Vrati gumb u normalu nakon 2 sekunde
-            setTimeout(() => {
-                button.innerHTML = '<i class="bi bi-check-lg"></i>';
-                button.classList.remove('btn-success', 'saved');
-                button.classList.add('btn-primary');
-            }, 2000);
-
-        }, 1000);
-    }
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
