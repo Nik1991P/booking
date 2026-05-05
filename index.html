@@ -9,12 +9,9 @@
         :root { --primary: #2563eb; --bg: #f1f5f9; }
         body { background-color: var(--bg); font-family: 'Inter', sans-serif; }
         .navbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 1rem 0; }
-        
-        /* FIKSIRAN NAV-LINK BEZ HOVERA */
         .nav-link { color: #64748b !important; font-weight: 600; cursor: pointer; border: none !important; background: none !important; outline: none !important; }
         .nav-link:hover, .nav-link:focus, .nav-link:active { color: #64748b !important; background: none !important; box-shadow: none !important; }
         .nav-link.active { color: var(--primary) !important; border-bottom: 2px solid var(--primary) !important; border-radius: 0; }
-        
         .card { border: none; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .tour-card { border-left: 4px solid var(--primary) !important; }
         .calendar-day-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; }
@@ -37,7 +34,6 @@
     </nav>
 
     <div class="container mb-5">
-        <!-- KORISNIK -->
         <div id="sec-op">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold m-0">Pregled tura</h4>
@@ -46,25 +42,25 @@
             <div class="row g-4" id="cardsContainer"></div>
         </div>
 
-        <!-- ADMIN -->
         <div id="sec-ad" style="display:none">
             <div class="row">
                 <div class="col-lg-4">
                     <div class="card p-4 mb-4 shadow-sm">
                         <h5 class="fw-bold mb-3">Tjedni plan</h5>
                         <div id="busChecklist" class="mb-4 d-flex flex-column gap-2"></div>
-                        <button class="btn btn-primary w-100 py-2 fw-bold mb-3" onclick="previewSchedule()">GENERIRAJ TJEDAN</button>
-                        
-                        <!-- GUMBI SADA STALNO VIDLJIVI -->
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn btn-primary flex-grow-1 fw-bold" onclick="previewSchedule()">GENERIRAJ TJEDAN</button>
+                            <button class="btn btn-outline-secondary fw-bold" onclick="addSingleBus()" title="Dodaj 1 bus na odabrani datum">+</button>
+                        </div>
                         <div id="adminActions" class="pt-3 border-top">
-                            <button class="btn btn-outline-primary w-100 mb-2 fw-bold" onclick="saveAdmin('append')">SPREMI (Dodaj)</button>
-                            <button class="btn btn-danger w-100 fw-bold" id="btnOverwrite" onclick="saveAdmin('overwrite')">SPREMI IZMJENE (Update)</button>
+                            <button class="btn btn-outline-primary w-100 mb-2 fw-bold" onclick="saveAdmin('append')">SPREMI</button>
+                            <button class="btn btn-danger w-100 fw-bold" onclick="saveAdmin('overwrite')">SPREMI IZMJENE</button>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-8">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold m-0">Pregled / Uređivanje</h5>
+                        <h5 class="fw-bold m-0">Kalendar / Uređivanje</h5>
                         <input type="date" id="datePickerAd" class="form-control w-auto border-primary" onchange="fetchAdminByDate()">
                     </div>
                     <div id="calendarDisplay"></div>
@@ -74,7 +70,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbwuunxhJTvrQlj0S0rj5sddozQCiQcwQXBDv_gMzJf-zRT4rCIfY_f2npfD7b7pMDYFGA/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbz7782yFWlTfRkpqGF-_8EiLhD8IRuLXLIrY45EeY7XgNCGkqS4W1x8CQyibbQUyUxDCw/exec";
         const weeklyTemplate = [
             {vrijeme: "09:00", ruta: "Ruta 1", bus: "Bus 1", cap: 50},
             {vrijeme: "10:30", ruta: "Ruta 2", bus: "Bus 2", cap: 20},
@@ -82,7 +78,6 @@
             {vrijeme: "15:00", ruta: "Ruta 4", bus: "Bus 4", cap: 30}
         ];
         let tempSchedule = [];
-        let isEditingPreview = false;
 
         async function api(data) {
             document.getElementById('loader').style.display = 'flex';
@@ -100,7 +95,7 @@
             loadOperater();
         };
 
-        // --- KORISNIK (STALNI CRVENI ALERT) ---
+        // KORISNIK (Vraćen crveni alert)
         async function loadOperater() {
             const date = document.getElementById('datePickerOp').value;
             const res = await api({ action: "getTours", date: date });
@@ -138,7 +133,7 @@
             loadOperater();
         }
 
-        // --- ADMIN ---
+        // ADMIN
         function loadAdmin() {
             document.getElementById('busChecklist').innerHTML = weeklyTemplate.map((t, i) => `
                 <div class="form-check p-2 border rounded">
@@ -151,15 +146,13 @@
         async function fetchAdminByDate() {
             const date = document.getElementById('datePickerAd').value;
             const res = await api({ action: "getTours", date: date });
-            isEditingPreview = false;
-            // Mapiramo DB podatke u privremeni format da bi se mogli brisati
             tempSchedule = res.data.map(t => ({
                 tempId: Math.random().toString(36).substr(2, 9),
                 dateISO: new Date(t.datum).toISOString(),
                 datum: new Date(t.datum).toLocaleDateString('hr-HR'),
                 vrijeme: t.vrijeme, ruta: t.ruta, bus: t.bus, max: t.max
             }));
-            renderAdmin(true);
+            renderAdmin();
         }
 
         function previewSchedule() {
@@ -178,11 +171,24 @@
                     });
                 });
             }
-            isEditingPreview = true;
-            renderAdmin(false);
+            renderAdmin();
         }
 
-        function renderAdmin(isFromDB) {
+        function addSingleBus() {
+            const dateStr = document.getElementById('datePickerAd').value;
+            if(!dateStr) return alert("Odaberi datum na kalendaru!");
+            const dDate = new Date(dateStr);
+            const firstBus = weeklyTemplate[0];
+            tempSchedule.push({
+                tempId: Math.random().toString(36).substr(2, 9),
+                dateISO: dDate.toISOString(),
+                datum: dDate.toLocaleDateString('hr-HR'),
+                vrijeme: firstBus.vrijeme, ruta: firstBus.ruta, bus: firstBus.bus, max: firstBus.cap
+            });
+            renderAdmin();
+        }
+
+        function renderAdmin() {
             const container = document.getElementById('calendarDisplay');
             if(tempSchedule.length === 0) {
                 container.innerHTML = '<div class="text-muted p-4 border rounded bg-white">Nema podataka.</div>';
@@ -209,19 +215,20 @@
 
         function removeTemp(id) {
             tempSchedule = tempSchedule.filter(x => x.tempId !== id);
-            renderAdmin(false);
+            renderAdmin();
         }
 
         async function saveAdmin(type) {
-            if (tempSchedule.length === 0 && type === 'append') {
-                alert("Nema podataka za dodavanje.");
-                return;
-            }
             const action = type === 'append' ? "saveAppend" : "saveOverwrite";
             const res = await api({ action: action, finalData: tempSchedule });
             alert(res.message);
-            // NAKON SPREMANJA: Ne čistimo tempSchedule, tako da kalendar ostaje vidljiv za daljnje promjene
-            renderAdmin(false);
+            
+            // Pomicanje na sljedeći dan
+            let current = new Date(document.getElementById('datePickerAd').value);
+            current.setDate(current.getDate() + 1);
+            document.getElementById('datePickerAd').value = current.toISOString().split('T')[0];
+            
+            fetchAdminByDate();
         }
 
         function showSection(id) {
