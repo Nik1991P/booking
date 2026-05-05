@@ -6,33 +6,39 @@
     <title>Bus Tour Manager</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background: #f4f7f6; font-family: sans-serif; }
-        .card { border-radius: 12px; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:1000; justify-content:center; align-items:center; }
+        body { background: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+        .nav-pills .nav-link { border-radius: 20px; font-weight: bold; }
+        .tour-card { border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .progress { height: 8px; border-radius: 4px; }
+        #loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:9999; justify-content:center; align-items:center; }
     </style>
 </head>
 <body>
-    <div id="loader" class="loader"><div class="spinner-border text-primary"></div></div>
+    <div id="loader"><div class="spinner-border text-primary"></div></div>
 
-    <nav class="navbar navbar-dark bg-primary mb-4"><div class="container"><span class="navbar-brand">TOUR MANAGER</span></div></nav>
+    <nav class="navbar navbar-dark bg-primary shadow-sm mb-4">
+        <div class="container text-center"><span class="navbar-brand mx-auto fw-bold">BUS TOURS API</span></div>
+    </nav>
 
     <div class="container">
-        <div class="d-flex justify-content-center mb-4">
-            <button class="btn btn-outline-primary me-2" onclick="showSection('op')">Operater</button>
-            <button class="btn btn-outline-primary" onclick="showSection('ad')">Admin</button>
-        </div>
+        <ul class="nav nav-pills justify-content-center mb-4">
+            <li class="nav-item"><button class="nav-link active" onclick="showSec('op')">OPERATER</button></li>
+            <li class="nav-item ms-2"><button class="nav-link" onclick="showSec('ad')">ADMIN</button></li>
+        </ul>
 
-        <!-- OPERATER -->
-        <div id="sec-op" class="section">
+        <div id="sec-op">
+            <h5 class="text-center text-muted mb-4" id="todayLabel"></h5>
             <div id="cards" class="row g-3"></div>
         </div>
 
-        <!-- ADMIN -->
-        <div id="sec-ad" class="section" style="display:none">
-            <div class="card p-3">
-                <button class="btn btn-success mb-3" onclick="generateWeek()">GENERIRAJ TJEDAN</button>
-                <div class="table-responsive"><table class="table table-sm text-center">
-                    <thead class="table-dark"><tr><th>Tura</th><th>P</th><th>U</th><th>S</th><th>Č</th><th>P</th><th>S</th><th>N</th></tr></thead>
+        <div id="sec-ad" style="display:none">
+            <div class="card p-4 border-0 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="mb-0">Tjedni raspored</h5>
+                    <button class="btn btn-success fw-bold" onclick="generateWeek()">GENERIRAJ TJEDAN</button>
+                </div>
+                <div class="table-responsive"><table class="table table-hover align-middle text-center">
+                    <thead class="table-dark"><tr><th>Vrijeme / Ruta</th><th>P</th><th>U</th><th>S</th><th>Č</th><th>P</th><th>S</th><th>N</th></tr></thead>
                     <tbody id="adminTable"></tbody>
                 </table></div>
             </div>
@@ -40,75 +46,78 @@
     </div>
 
     <script>
-        // --- PROMIJENI OVO ---
-        const API_URL = "https://script.google.com/macros/s/AKfycbwBpRBwqtvCekKtywysNx-wqi2vgEisSi99IDiSC43_BW1Mg2MW-bMUod9tdp67cww-Ng/exec"; 
+        // --- ZAMIJENI ISPOD SA SVOJIM URL-OM ---
+        const API_URL = "https://script.google.com/macros/s/AKfycbxl9iHHhB78cbNuqafXt_XLX7SX6hp69Vc04kKRiKL6B5oxyhtE0B5iUi9KUvSM9RDD-g/exec"; 
 
-        async function callAPI(payload) {
-            toggleLoader(true);
+        async function api(payload) {
+            document.getElementById('loader').style.display = 'flex';
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
-                const res = await response.json();
+                const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                const res = await r.json();
                 if(res.status === "error") throw res.message;
                 return res;
-            } catch (err) {
-                alert("Greška: " + err);
-                return null;
-            } finally {
-                toggleLoader(false);
-            }
+            } catch (e) { alert("Greška: " + e); return null; }
+            finally { document.getElementById('loader').style.display = 'none'; }
         }
 
         async function loadOperater() {
-            const res = await callAPI({ action: "getTodayTours" });
+            document.getElementById('todayLabel').innerText = "Danas: " + new Date().toLocaleDateString('hr-HR');
+            const res = await api({ action: "getTodayTours" });
             if(!res) return;
             const container = document.getElementById('cards');
-            container.innerHTML = res.data.length ? res.data.map(t => `
-                <div class="col-md-6">
-                    <div class="card p-3">
-                        <h6>${t.ruta} (${t.vrijeme})</h6>
-                        <div class="input-group mt-2">
-                            <input type="number" id="in-${t.row}" class="form-control" placeholder="+ putnika">
-                            <button class="btn btn-primary" onclick="addTourists(${t.row})">DODAJ</button>
+            container.innerHTML = res.data.length ? res.data.map(t => {
+                const perc = (t.trenutno / t.max) * 100;
+                return `
+                <div class="col-md-6 col-lg-4">
+                    <div class="card tour-card p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold">${t.ruta}</h6>
+                            <span class="badge bg-light text-primary">${t.vrijeme}</span>
                         </div>
-                        <div class="mt-2 small text-muted">Popunjeno: ${t.trenutno} / ${t.max}</div>
+                        <small class="text-muted d-block mb-3">${t.bus}</small>
+                        <div class="input-group input-group-sm mb-3">
+                            <input type="number" id="in-${t.row}" class="form-control" placeholder="Br. putnika">
+                            <button class="btn btn-primary" onclick="add(${t.row})">DODAJ</button>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>Bukirano: ${t.trenutno} / ${t.max}</span>
+                            <span>Još: ${t.max - t.trenutno}</span>
+                        </div>
+                        <div class="progress"><div class="progress-bar" style="width:${perc}%"></div></div>
                     </div>
-                </div>
-            `).join('') : '<p class="text-center">Nema tura za danas.</p>';
+                </div>`;
+            }).join('') : '<p class="text-center py-5">Nema tura za danas. Admin treba generirati tjedan.</p>';
         }
 
         async function loadAdmin() {
-            const res = await callAPI({ action: "getTemplate" });
+            const res = await api({ action: "getTemplate" });
             if(!res) return;
             document.getElementById('adminTable').innerHTML = res.data.map((t, i) => `
                 <tr>
-                    <td class="small">${t.vrijeme}<br>${t.ruta}</td>
-                    ${[0,1,2,3,4,5,6].map(d => `<td><input type="checkbox" class="day-check" checked data-t="${i}" data-d="${d}"></td>`).join('')}
-                </tr>
-            `).join('');
+                    <td class="text-start small fw-bold">${t.vrijeme}<br><span class="text-muted">${t.ruta}</span></td>
+                    ${[0,1,2,3,4,5,6].map(d => `<td><input type="checkbox" class="form-check-input day-check" checked data-t="${i}" data-d="${d}"></td>`).join('')}
+                </tr>`).join('');
         }
 
         async function generateWeek() {
             const checks = [...document.querySelectorAll('.day-check:checked')].map(c => ({ tourIndex: c.dataset.t, dayIndex: c.dataset.d }));
-            const res = await callAPI({ action: "generateWeek", selekcija: checks });
-            if(res) alert(res.message);
+            if(!checks.length) return alert("Označi barem jednu turu!");
+            const res = await api({ action: "generateWeek", selekcija: checks });
+            if(res) { alert(res.message); showSec('op'); }
         }
 
-        async function addTourists(rowId) {
-            const count = document.getElementById('in-' + rowId).value;
-            const res = await callAPI({ action: "addTourists", rowId, count });
-            if(res) { alert("Dodano!"); loadOperater(); }
+        async function add(rowId) {
+            const val = document.getElementById('in-' + rowId).value;
+            if(!val || val <= 0) return alert("Unesi broj!");
+            const res = await api({ action: "addTourists", rowId, count: val });
+            if(res) { alert("Uspješno dodano!"); loadOperater(); }
         }
 
-        function showSection(id) {
-            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-            document.getElementById('sec-' + id).style.display = 'block';
+        function showSec(id) {
+            document.getElementById('sec-op').style.display = id === 'op' ? 'block' : 'none';
+            document.getElementById('sec-ad').style.display = id === 'ad' ? 'block' : 'none';
             id === 'op' ? loadOperater() : loadAdmin();
         }
-
-        function toggleLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
 
         window.onload = () => loadOperater();
     </script>
