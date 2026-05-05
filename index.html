@@ -9,19 +9,12 @@
         :root { --primary: #2563eb; --bg: #f1f5f9; }
         body { background-color: var(--bg); font-family: 'Inter', sans-serif; }
         .navbar { background: white; border-bottom: 1px solid #e2e8f0; padding: 1rem 0; }
-        .nav-link { color: #64748b !important; font-weight: 600; cursor: pointer; border: none !important; background: none !important; outline: none !important; }
-        .nav-link:hover { color: #64748b !important; background: none !important; box-shadow: none !important; }
+        .nav-link { color: #64748b !important; font-weight: 600; cursor: pointer; border: none !important; background: none !important; }
         .nav-link.active { color: var(--primary) !important; border-bottom: 2px solid var(--primary) !important; border-radius: 0; }
         .card { border: none; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .tour-card { border-left: 4px solid var(--primary) !important; }
-        .calendar-day-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; }
-        .temp-tour-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-remove { color: #ef4444; background: none; border: none; font-size: 1.2rem; cursor: pointer; }
-        /* CRVENI ALERT - NETAKNUT */
         .limit-alert { display: none; color: #ef4444; font-weight: bold; font-size: 0.85rem; margin-top: 10px; padding: 8px; background: #fee2e2; border-radius: 8px; border: 1px solid #fca5a5; }
-        #loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.6); z-index:9999; justify-content:center; align-items:center; }
-        /* VRAĆENI IZGLED TJEDNOG PLANA */
-        .admin-sidebar { padding-left: 15px; padding-right: 15px; }
+        #loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.4); z-index:9999; justify-content:center; align-items:center; }
     </style>
 </head>
 <body>
@@ -48,8 +41,8 @@
 
         <div id="sec-ad" style="display:none">
             <div class="row">
-                <div class="col-lg-4 admin-sidebar">
-                    <div class="card p-4 mb-4 shadow-sm">
+                <div class="col-lg-4 px-3">
+                    <div class="card p-4 mb-4">
                         <h5 class="fw-bold mb-3">Tjedni plan</h5>
                         <div id="busChecklist" class="mb-4 d-flex flex-column gap-2"></div>
                         <div class="d-grid gap-2 mb-3">
@@ -74,7 +67,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzHnakQkgrqaTZLCImjPKp8CKxBbFzNE75OcR3tkKLb2BiFGssp_leK2G9-1gTDDRucgA/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbwlydrjJM-CQBjRfrY1PhiABB5ua9CyhpnzHiBgp8cOW-xLsK6ffItr4zNF_gl_0PIalQ/exec";
         const weeklyTemplate = [
             {vrijeme: "09:00", ruta: "Ruta 1", bus: "Bus 1", cap: 50},
             {vrijeme: "10:30", ruta: "Ruta 2", bus: "Bus 2", cap: 20},
@@ -94,13 +87,15 @@
 
         window.onload = () => {
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('datePickerOp').value = today;
-            document.getElementById('datePickerAd').value = today;
+            // Ako već postoji odabran datum u memoriji, koristi njega, inače današnji
+            document.getElementById('datePickerOp').value = sessionStorage.getItem('lastDate') || today;
+            document.getElementById('datePickerAd').value = sessionStorage.getItem('lastDate') || today;
             loadOperater();
         };
 
         async function loadOperater() {
             const date = document.getElementById('datePickerOp').value;
+            sessionStorage.setItem('lastDate', date); // Pamti datum
             const res = await api({ action: "getTours", date: date });
             const container = document.getElementById('cardsContainer');
             if(!res.data || res.data.length === 0) {
@@ -131,10 +126,10 @@
             const alertEl = document.getElementById('alert-' + rowId);
             const remEl = document.getElementById('rem-' + rowId);
             const inputEl = document.getElementById('in-' + rowId);
-            const currentVal = parseInt(displayEl.innerText) || 0;
             const val = parseInt(inputEl.value) || 0;
-            
             if(val <= 0) return;
+
+            const currentVal = parseInt(displayEl.innerText) || 0;
             alertEl.style.display = 'none';
 
             if(mode === 'add' && (currentVal + val > max)) {
@@ -142,20 +137,35 @@
                 alertEl.style.display = 'block';
                 return;
             }
-            
-            const change = mode === 'add' ? val : -val;
-            const res = await api({ action: "addTourists", rowId, count: change });
-            
-            // OVO SADA ISPRAVNO AŽURIRA BROJKU BEZ UNDEFINED
-            if(res.status === "success" && res.noviBroj !== undefined) {
-                displayEl.innerText = res.noviBroj;
-                inputEl.value = "";
-            }
+
+            // OPTIMISTIČKO AŽURIRANJE: Promijeni brojku ODMAH na ekranu
+            const instantNewVal = mode === 'add' ? currentVal + val : currentVal - val;
+            displayEl.innerText = instantNewVal;
+            inputEl.value = "";
+
+            // Zatim pošalji u pozadini na server
+            api({ action: "addTourists", rowId, count: (mode === 'add' ? val : -val) });
         }
 
+        async function saveAdmin(type) {
+            const action = type === 'append' ? "saveAppend" : "saveOverwrite";
+            await api({ action: action, finalData: tempSchedule });
+            // Nema pop-upa, samo osvježi prikaz
+            fetchAdminByDate();
+        }
+
+        function showSection(id) {
+            document.getElementById('sec-op').style.display = id === 'op' ? 'block' : 'none';
+            document.getElementById('sec-ad').style.display = id === 'ad' ? 'block' : 'none';
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById('btn-' + id).classList.add('active');
+            if(id === 'op') loadOperater(); else loadAdmin();
+        }
+
+        // Ostale admin funkcije (checklist, preview, render) su iste kao prije...
         function loadAdmin() {
             document.getElementById('busChecklist').innerHTML = weeklyTemplate.map((t, i) => `
-                <div class="form-check p-2 border rounded">
+                <div class="form-check p-2 border rounded small">
                     <input class="form-check-input ms-1" type="checkbox" data-t="${i}" id="chk${i}">
                     <label class="form-check-label ms-2" for="chk${i}">${t.bus} (${t.vrijeme})</label>
                 </div>`).join('');
@@ -164,6 +174,7 @@
 
         async function fetchAdminByDate() {
             const date = document.getElementById('datePickerAd').value;
+            sessionStorage.setItem('lastDate', date);
             const res = await api({ action: "getTours", date: date });
             tempSchedule = (res.data || []).map(t => ({
                 tempId: Math.random().toString(36).substr(2, 9),
@@ -174,13 +185,32 @@
             renderAdmin();
         }
 
+        function renderAdmin() {
+            const container = document.getElementById('calendarDisplay');
+            if(tempSchedule.length === 0) {
+                container.innerHTML = '<div class="text-muted p-4 border rounded bg-white">Nema podataka.</div>';
+                return;
+            }
+            const grouped = tempSchedule.reduce((acc, t) => { 
+                acc[t.datum] = acc[t.datum] || []; acc[t.datum].push(t); return acc; 
+            }, {});
+            container.innerHTML = Object.keys(grouped).map(date => `
+                <div class="card p-3 mb-3">
+                    <h6 class="fw-bold border-bottom pb-2">${date}</h6>
+                    <div class="row g-2">${grouped[date].map(t => `
+                        <div class="col-md-6"><div class="p-2 border rounded d-flex justify-content-between align-items-center bg-light">
+                        <span class="small fw-bold">${t.vrijeme} | ${t.bus}</span>
+                        <button class="btn btn-sm text-danger" onclick="removeTemp('${t.tempId}')">✕</button></div></div>`).join('')}
+                    </div>
+                </div>`).join('');
+        }
+        
         function previewFiveDays() {
             const startStr = document.getElementById('datePickerAd').value;
             let start = new Date(startStr);
             tempSchedule = [];
             for (let d = 0; d < 5; d++) {
-                let dDate = new Date(start);
-                dDate.setDate(start.getDate() + d);
+                let dDate = new Date(start); dDate.setDate(start.getDate() + d);
                 weeklyTemplate.forEach(t => {
                     tempSchedule.push({
                         tempId: Math.random().toString(36).substr(2, 9),
@@ -196,7 +226,6 @@
         function addMarkedBuses() {
             const dateStr = document.getElementById('datePickerAd').value;
             const selectedIndices = [...document.querySelectorAll('.form-check-input:checked')].map(c => parseInt(c.dataset.t));
-            if(selectedIndices.length === 0) return;
             const dDate = new Date(dateStr);
             selectedIndices.forEach(idx => {
                 let t = weeklyTemplate[idx];
@@ -209,49 +238,10 @@
             });
             renderAdmin();
         }
-
-        function renderAdmin() {
-            const container = document.getElementById('calendarDisplay');
-            if(tempSchedule.length === 0) {
-                container.innerHTML = '<div class="text-muted p-4 border rounded bg-white">Nema podataka.</div>';
-                return;
-            }
-            const grouped = tempSchedule.reduce((acc, t) => { 
-                acc[t.datum] = acc[t.datum] || []; acc[t.datum].push(t); return acc; 
-            }, {});
-            container.innerHTML = Object.keys(grouped).map(date => `
-                <div class="calendar-day-box shadow-sm">
-                    <h6 class="fw-bold border-bottom pb-2">${date}</h6>
-                    <div class="row g-2">
-                        ${grouped[date].map(t => `
-                            <div class="col-md-6">
-                                <div class="temp-tour-item">
-                                    <span class="small fw-bold">${t.vrijeme} | ${t.bus}</span>
-                                    <button class="btn-remove" onclick="removeTemp('${t.tempId}')">✕</button>
-                                </div>
-                            </div>`).join('')}
-                    </div>
-                </div>`).join('');
-        }
-
+        
         function removeTemp(id) {
             tempSchedule = tempSchedule.filter(x => x.tempId !== id);
             renderAdmin();
-        }
-
-        async function saveAdmin(type) {
-            const action = type === 'append' ? "saveAppend" : "saveOverwrite";
-            const res = await api({ action: action, finalData: tempSchedule });
-            alert(res.message);
-            fetchAdminByDate();
-        }
-
-        function showSection(id) {
-            document.getElementById('sec-op').style.display = id === 'op' ? 'block' : 'none';
-            document.getElementById('sec-ad').style.display = id === 'ad' ? 'block' : 'none';
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            document.getElementById('btn-' + id).classList.add('active');
-            if(id === 'op') loadOperater(); else loadAdmin();
         }
     </script>
 </body>
