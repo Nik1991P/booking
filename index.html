@@ -12,12 +12,12 @@
         .nav-link { color: #64748b !important; font-weight: 600; cursor: pointer; border: none !important; background: none !important; outline: none !important; }
         .nav-link:hover, .nav-link:focus, .nav-link:active { color: #64748b !important; background: none !important; box-shadow: none !important; }
         .nav-link.active { color: var(--primary) !important; border-bottom: 2px solid var(--primary) !important; border-radius: 0; }
-        .card { border: none; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .card { border: none; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: transform 0.2s; }
         .tour-card { border-left: 4px solid var(--primary) !important; }
         .calendar-day-box { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; }
         .temp-tour-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
         .btn-remove { color: #ef4444; background: none; border: none; font-size: 1.2rem; cursor: pointer; }
-        #loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); z-index:9999; justify-content:center; align-items:center; }
+        #loader { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.6); z-index:9999; justify-content:center; align-items:center; }
     </style>
 </head>
 <body>
@@ -48,12 +48,10 @@
                     <div class="card p-4 mb-4 shadow-sm">
                         <h5 class="fw-bold mb-3">Tjedni plan</h5>
                         <div id="busChecklist" class="mb-4 d-flex flex-column gap-2"></div>
-                        
                         <div class="d-grid gap-2 mb-3">
-                            <button class="btn btn-outline-secondary fw-bold" onclick="addMarkedBuses()">+ DODAJ OZNAČENO NA KALENDAR</button>
+                            <button class="btn btn-outline-secondary fw-bold" onclick="addMarkedBuses()">+ DODAJ OZNAČENO</button>
                             <button class="btn btn-primary fw-bold" onclick="previewFiveDays()">GENERIRAJ (5 DANA)</button>
                         </div>
-
                         <div id="adminActions" class="pt-3 border-top">
                             <button class="btn btn-outline-primary w-100 mb-2 fw-bold" onclick="saveAdmin('append')">SPREMI (Dodaj)</button>
                             <button class="btn btn-danger w-100 fw-bold" onclick="saveAdmin('overwrite')">SPREMI IZMJENE (Update)</button>
@@ -72,7 +70,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxLCDsQfca9D4ByJ2aWcGT35L9XG22W5hfrkpyvjN4J_XA1LPQEdfpVWO_Hh98Cl532wQ/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbyaoupofNMbhu9q_sgb9TdGj04xXwT8IzcWraYOIhlxLvTDJh9cAK0cJp662lmOGyM2Sg/exec";
         const weeklyTemplate = [
             {vrijeme: "09:00", ruta: "Ruta 1", bus: "Bus 1", cap: 50},
             {vrijeme: "10:30", ruta: "Ruta 2", bus: "Bus 2", cap: 20},
@@ -102,7 +100,7 @@
             const res = await api({ action: "getTours", date: date });
             const container = document.getElementById('cardsContainer');
             if(!res.data || res.data.length === 0) {
-                container.innerHTML = '<div class="col-12 text-center py-5">Nema vožnji.</div>';
+                container.innerHTML = '<div class="col-12 text-center py-5">Nema vožnji za danas.</div>';
                 return;
             }
             container.innerHTML = res.data.map(t => `
@@ -118,20 +116,30 @@
                             <button class="btn btn-primary fw-bold" onclick="updateTourists(${t.row}, 'add', ${t.max}, ${t.trenutno})">DODAJ</button>
                             <button class="btn btn-outline-danger fw-bold" onclick="updateTourists(${t.row}, 'sub', ${t.max}, ${t.trenutno})">ODUZMI</button>
                         </div>
-                        <div class="small fw-bold">Popunjeno: ${t.trenutno} / ${t.max}</div>
+                        <div class="small fw-bold">Popunjeno: <span id="count-${t.row}">${t.trenutno}</span> / ${t.max}</div>
                     </div>
                 </div>`).join('');
         }
 
         async function updateTourists(rowId, mode, max, current) {
-            const val = parseInt(document.getElementById('in-' + rowId).value) || 0;
+            const displayEl = document.getElementById('count-' + rowId);
+            const nowVal = parseInt(displayEl.innerText);
+            const inputEl = document.getElementById('in-' + rowId);
+            const val = parseInt(inputEl.value) || 0;
+            
             if(val <= 0) return;
-            if(mode === 'add' && (current + val > max)) {
-                alert("!!! PREKORAČENJE !!!\nMaksimalan broj putnika je " + max + ".\nSlobodno još samo: " + (max - current));
+            if(mode === 'add' && (nowVal + val > max)) {
+                alert("!!! PREKORAČENJE !!!\nMaksimalan broj putnika je " + max + ".\nSlobodno još samo: " + (max - nowVal));
                 return;
             }
-            await api({ action: "addTourists", rowId, count: mode === 'add' ? val : -val });
-            loadOperater();
+            
+            // Brzi vizualni update dok server obrađuje
+            const change = mode === 'add' ? val : -val;
+            const res = await api({ action: "addTourists", rowId, count: change });
+            if(res.status === "success") {
+                displayEl.innerText = res.noviBroj;
+                inputEl.value = "";
+            }
         }
 
         function loadAdmin() {
@@ -159,8 +167,6 @@
             const startStr = document.getElementById('datePickerAd').value;
             let start = new Date(startStr);
             tempSchedule = [];
-            
-            // Generira svih 5 dana sa svim rutama iz template-a
             for (let d = 0; d < 5; d++) {
                 let dDate = new Date(start);
                 dDate.setDate(start.getDate() + d);
@@ -179,8 +185,7 @@
         function addMarkedBuses() {
             const dateStr = document.getElementById('datePickerAd').value;
             const selectedIndices = [...document.querySelectorAll('.form-check-input:checked')].map(c => parseInt(c.dataset.t));
-            if(selectedIndices.length === 0) return alert("Prvo označi kvacicom bus koji želiš dodati!");
-            
+            if(selectedIndices.length === 0) return alert("Označi kvacicom bus!");
             const dDate = new Date(dateStr);
             selectedIndices.forEach(idx => {
                 let t = weeklyTemplate[idx];
@@ -203,7 +208,6 @@
             const grouped = tempSchedule.reduce((acc, t) => { 
                 acc[t.datum] = acc[t.datum] || []; acc[t.datum].push(t); return acc; 
             }, {});
-            
             container.innerHTML = Object.keys(grouped).map(date => `
                 <div class="calendar-day-box">
                     <h6 class="fw-bold border-bottom pb-2">${date}</h6>
